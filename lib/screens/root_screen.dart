@@ -110,6 +110,7 @@ class _RootScreenState extends State<RootScreen> {
         playerRepository: _playerRepository,
         attendanceRepository: _attendanceRepository,
         onGoToRosters: () => setState(() => _tabIndex = 3),
+        onChanged: _refresh,
       ),
       LibraryScreen(drillRepository: _drillRepository, onChanged: _refresh),
       SessionsScreen(

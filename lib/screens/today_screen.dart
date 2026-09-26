@@ -5,7 +5,6 @@ import '../models/drill.dart';
 import '../models/roster.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
-import '../models/weekly_schedule.dart';
 import '../services/attendance_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
@@ -17,11 +16,6 @@ import 'attendance_screen.dart';
 import 'drill_detail_screen.dart';
 import 'schedule_screen.dart';
 
-DayOfWeek _todayAsDayOfWeek() {
-  // DateTime.weekday is 1 (Monday) through 7 (Sunday), matching enum order.
-  return DayOfWeek.values[DateTime.now().weekday - 1];
-}
-
 class TodayScreen extends StatelessWidget {
   final DrillRepository drillRepository;
   final SessionRepository sessionRepository;
@@ -30,6 +24,7 @@ class TodayScreen extends StatelessWidget {
   final PlayerRepository playerRepository;
   final AttendanceRepository attendanceRepository;
   final VoidCallback onGoToRosters;
+  final VoidCallback onChanged;
 
   const TodayScreen({
     super.key,
@@ -40,6 +35,7 @@ class TodayScreen extends StatelessWidget {
     required this.playerRepository,
     required this.attendanceRepository,
     required this.onGoToRosters,
+    required this.onChanged,
   });
 
   @override
@@ -72,6 +68,7 @@ class TodayScreen extends StatelessWidget {
                     scheduleRepository: scheduleRepository,
                     playerRepository: playerRepository,
                     attendanceRepository: attendanceRepository,
+                    onChanged: onChanged,
                   ),
               ],
             ),
@@ -86,6 +83,7 @@ class _RosterToday extends StatelessWidget {
   final ScheduleRepository scheduleRepository;
   final PlayerRepository playerRepository;
   final AttendanceRepository attendanceRepository;
+  final VoidCallback onChanged;
 
   const _RosterToday({
     required this.roster,
@@ -94,12 +92,13 @@ class _RosterToday extends StatelessWidget {
     required this.scheduleRepository,
     required this.playerRepository,
     required this.attendanceRepository,
+    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final today = _todayAsDayOfWeek();
-    final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(today);
+    final todayIso = AttendanceRecord.isoDate(DateTime.now());
+    final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(todayIso);
     final session = sessionId == null ? null : sessionRepository.byId(sessionId);
 
     return Padding(
@@ -124,7 +123,7 @@ class _RosterToday extends StatelessWidget {
                           rosterId: roster.id,
                           sessionRepository: sessionRepository,
                           scheduleRepository: scheduleRepository,
-                          onChanged: () {},
+                          onChanged: onChanged,
                         ),
                       ),
                     ),
@@ -164,7 +163,7 @@ class _RosterToday extends StatelessWidget {
                             rosterId: roster.id,
                             sessionRepository: sessionRepository,
                             scheduleRepository: scheduleRepository,
-                            onChanged: () {},
+                            onChanged: onChanged,
                           ),
                         ),
                       ),

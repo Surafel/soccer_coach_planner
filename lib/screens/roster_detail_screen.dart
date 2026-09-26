@@ -234,7 +234,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _openSchedule,
                     icon: const Icon(Icons.calendar_month),
-                    label: const Text('Weekly Schedule'),
+                    label: const Text('Schedule'),
                   ),
                 ),
                 const SizedBox(width: 8),

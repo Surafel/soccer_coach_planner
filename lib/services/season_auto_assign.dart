@@ -2,7 +2,6 @@ import '../data/u10_curriculum.dart';
 import '../models/age_group.dart';
 import '../models/attendance_record.dart';
 import '../models/season_progress.dart';
-import '../models/weekly_schedule.dart';
 import 'drill_repository.dart';
 import 'roster_repository.dart';
 import 'schedule_repository.dart';
@@ -11,9 +10,10 @@ import 'session_repository.dart';
 
 /// Runs once per app start. On Saturdays, every roster with a built-in
 /// curriculum (currently just U10) gets that week's session automatically
-/// assigned to Saturday — unless a coach has changed Saturday away from
-/// what was auto-assigned last time, in which case progress pauses on that
-/// same week instead of advancing, and picks back up from there next time.
+/// assigned to that specific Saturday's calendar date — unless a coach has
+/// changed what's on the *previous* auto-assigned Saturday, in which case
+/// progress pauses on that same week instead of advancing, and picks back
+/// up from there the next Saturday.
 ///
 /// This intentionally only advances a roster's week when the app is opened
 /// on the Saturday itself; there's no background execution to do it while
@@ -44,10 +44,11 @@ Future<void> runSeasonAutoAssignment({
     if (progress == null) {
       nextWeek = 1;
     } else {
-      final currentAssignment =
-          scheduleRepository.scheduleFor(roster.id).sessionIdFor(DayOfWeek.saturday);
+      final pastAssignment = scheduleRepository
+          .scheduleFor(roster.id)
+          .sessionIdFor(progress.lastAssignedDate);
       final untouchedSinceLastAssignment =
-          currentAssignment == progress.lastAssignedSessionId;
+          pastAssignment == progress.lastAssignedSessionId;
       nextWeek = untouchedSinceLastAssignment
           ? (progress.currentWeek + 1).clamp(1, u10Weeks.length)
           : progress.currentWeek; // overridden — pause on the same week
@@ -62,7 +63,7 @@ Future<void> runSeasonAutoAssignment({
       }
     }
     await sessionRepository.saveSession(session);
-    await scheduleRepository.assignSession(roster.id, DayOfWeek.saturday, session.id);
+    await scheduleRepository.assignSession(roster.id, todayIso, session.id);
     await progressRepository.save(SeasonProgress(
       rosterId: roster.id,
       currentWeek: nextWeek,
