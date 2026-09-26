@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../data/starter_plan.dart';
 import '../models/session.dart';
+import '../models/weekly_schedule.dart';
 import '../services/drill_repository.dart';
 import '../services/schedule_repository.dart';
 import '../services/session_repository.dart';
@@ -65,11 +67,58 @@ class _SessionsScreenState extends State<SessionsScreen> {
     widget.onChanged();
   }
 
+  Future<void> _loadStarterSchedule() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Load Saturday practice?'),
+        content: const Text(
+          'Adds a "Saturday Practice" session and schedules it every '
+          'Saturday, every week, all year, until you change it. This only '
+          'touches Saturday — whatever you have scheduled on other days is '
+          'left as-is.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Load'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final session = buildStarterSession();
+    await widget.sessionRepository.saveSession(session);
+    await widget.scheduleRepository.assignSession(DayOfWeek.saturday, session.id);
+    setState(() {});
+    widget.onChanged();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saturday practice scheduled.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sessions = widget.sessionRepository.sessions;
     return Scaffold(
-      appBar: AppBar(title: const Text('My Sessions')),
+      appBar: AppBar(
+        title: const Text('My Sessions'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.event_repeat),
+            tooltip: 'Load Saturday practice',
+            onPressed: _loadStarterSchedule,
+          ),
+        ],
+      ),
       body: sessions.isEmpty
           ? const Center(
               child: Text(
