@@ -18,6 +18,12 @@ class AppColors {
     DrillCategory.shooting: Color(0xFFE0522E),
     DrillCategory.fitness: Color(0xFFB185DB),
     DrillCategory.ballControl: Color(0xFFE0B02E),
+    DrillCategory.oneVOne: Color(0xFF00897B),
+    DrillCategory.possession: Color(0xFF3F51B5),
+    DrillCategory.attackingPrinciples: Color(0xFFFF7043),
+    DrillCategory.defendingPrinciples: Color(0xFF546E7A),
+    DrillCategory.smallSidedGames: Color(0xFFD81B60),
+    DrillCategory.gameRealism: Color(0xFF6D4C41),
   };
 
   static Color colorFor(DrillCategory category) =>

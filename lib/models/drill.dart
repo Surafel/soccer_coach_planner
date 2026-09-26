@@ -1,4 +1,43 @@
-enum DrillCategory { dribbling, passing, shooting, fitness, ballControl }
+enum DrillCategory {
+  dribbling,
+  passing,
+  shooting,
+  fitness,
+  ballControl,
+  oneVOne,
+  possession,
+  attackingPrinciples,
+  defendingPrinciples,
+  smallSidedGames,
+  gameRealism,
+}
+
+String drillCategoryLabel(DrillCategory category) {
+  switch (category) {
+    case DrillCategory.dribbling:
+      return 'Dribbling';
+    case DrillCategory.passing:
+      return 'Passing';
+    case DrillCategory.shooting:
+      return 'Shooting';
+    case DrillCategory.fitness:
+      return 'Fitness';
+    case DrillCategory.ballControl:
+      return 'Ball Control';
+    case DrillCategory.oneVOne:
+      return '1v1';
+    case DrillCategory.possession:
+      return 'Possession';
+    case DrillCategory.attackingPrinciples:
+      return 'Attacking Principles';
+    case DrillCategory.defendingPrinciples:
+      return 'Defending Principles';
+    case DrillCategory.smallSidedGames:
+      return 'Small-Sided Games';
+    case DrillCategory.gameRealism:
+      return 'Game Realism';
+  }
+}
 
 class Drill {
   final String id;
@@ -7,7 +46,11 @@ class Drill {
   final List<String> skillTags;
   final String description;
   final String ageRange;
-  final String videoId;
+
+  /// Curated YouTube video id, when one has been verified for this drill.
+  /// Null for drills without a confirmed video — the detail screen falls
+  /// back to a YouTube search instead of guessing a video id.
+  final String? videoId;
 
   const Drill({
     required this.id,
@@ -16,7 +59,7 @@ class Drill {
     required this.skillTags,
     required this.description,
     required this.ageRange,
-    required this.videoId,
+    this.videoId,
   });
 
   factory Drill.fromJson(Map<String, dynamic> json) => Drill(
@@ -26,7 +69,7 @@ class Drill {
         skillTags: (json['skillTags'] as List).cast<String>(),
         description: json['description'] as String,
         ageRange: json['ageRange'] as String,
-        videoId: json['videoId'] as String,
+        videoId: json['videoId'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -36,8 +79,16 @@ class Drill {
         'skillTags': skillTags,
         'description': description,
         'ageRange': ageRange,
-        'videoId': videoId,
+        if (videoId != null) 'videoId': videoId,
       };
+
+  /// A YouTube search for this drill, used as a fallback when no curated
+  /// video is available for it.
+  Uri get videoSearchUrl => Uri.https(
+        'www.youtube.com',
+        '/results',
+        {'search_query': '$name youth soccer drill'},
+      );
 
   Drill copyWith({
     String? name,

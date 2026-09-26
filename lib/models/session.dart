@@ -1,4 +1,5 @@
 import 'session_drill.dart';
+import 'session_phase.dart';
 
 class Session {
   final String id;
@@ -27,6 +28,14 @@ class Session {
 
   int get totalDurationMinutes =>
       drills.fold(0, (sum, d) => sum + d.durationMinutes);
+
+  /// This session's drills grouped by phase, always in the fixed
+  /// Warm-up → Game → Drill → Scrimmage order (skipping empty phases).
+  List<MapEntry<SessionPhase, List<SessionDrill>>> get phaseGroups => [
+        for (final phase in SessionPhase.values)
+          if (drills.any((d) => d.phase == phase))
+            MapEntry(phase, drills.where((d) => d.phase == phase).toList()),
+      ];
 
   Session copyWith({String? name, List<SessionDrill>? drills}) => Session(
         id: id,

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../data/starter_plan.dart';
 import '../models/session.dart';
-import '../models/weekly_schedule.dart';
 import '../services/drill_repository.dart';
 import '../services/schedule_repository.dart';
 import '../services/session_repository.dart';
 import '../widgets/session_card.dart';
+import 'season_plan_screen.dart';
 import 'session_builder_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
@@ -42,6 +41,19 @@ class _SessionsScreenState extends State<SessionsScreen> {
     widget.onChanged();
   }
 
+  Future<void> _openSeasonPlan() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SeasonPlanScreen(
+          drillRepository: widget.drillRepository,
+          sessionRepository: widget.sessionRepository,
+          onChanged: widget.onChanged,
+        ),
+      ),
+    );
+    setState(() {});
+  }
+
   Future<void> _delete(Session session) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -67,44 +79,6 @@ class _SessionsScreenState extends State<SessionsScreen> {
     widget.onChanged();
   }
 
-  Future<void> _loadStarterSchedule() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Load Saturday practice?'),
-        content: const Text(
-          'Adds a "Saturday Practice" session and schedules it every '
-          'Saturday, every week, all year, until you change it. This only '
-          'touches Saturday — whatever you have scheduled on other days is '
-          'left as-is.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Load'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    final session = buildStarterSession();
-    await widget.sessionRepository.saveSession(session);
-    await widget.scheduleRepository.assignSession(DayOfWeek.saturday, session.id);
-    setState(() {});
-    widget.onChanged();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saturday practice scheduled.')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final sessions = widget.sessionRepository.sessions;
@@ -113,17 +87,32 @@ class _SessionsScreenState extends State<SessionsScreen> {
         title: const Text('My Sessions'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.event_repeat),
-            tooltip: 'Load Saturday practice',
-            onPressed: _loadStarterSchedule,
+            icon: const Icon(Icons.menu_book_outlined),
+            tooltip: 'Season Plan',
+            onPressed: _openSeasonPlan,
           ),
         ],
       ),
       body: sessions.isEmpty
-          ? const Center(
-              child: Text(
-                'No sessions yet. Tap + to build a practice plan.',
-                textAlign: TextAlign.center,
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'No sessions yet. Tap + to build a practice plan,',
+                    textAlign: TextAlign.center,
+                  ),
+                  const Text(
+                    'or open the Season Plan for a ready-made curriculum.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _openSeasonPlan,
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Season Plan'),
+                  ),
+                ],
               ),
             )
           : ListView.builder(

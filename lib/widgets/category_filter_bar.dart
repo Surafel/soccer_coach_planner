@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/drill.dart';
 import '../theme/app_colors.dart';
 
-String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
-
 class CategoryFilterBar extends StatelessWidget {
   final DrillCategory? selected;
   final ValueChanged<DrillCategory?> onSelected;
@@ -35,7 +33,7 @@ class CategoryFilterBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ChoiceChip(
-                label: Text(_capitalize(category.name)),
+                label: Text(drillCategoryLabel(category)),
                 selected: selected == category,
                 selectedColor: AppColors.colorFor(category).withValues(alpha: 0.25),
                 onSelected: (_) => onSelected(category),

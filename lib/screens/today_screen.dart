@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/attendance_record.dart';
 import '../models/drill.dart';
 import '../models/session_drill.dart';
+import '../models/session_phase.dart';
 import '../models/weekly_schedule.dart';
 import '../services/attendance_repository.dart';
 import '../services/drill_repository.dart';
@@ -91,12 +92,21 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                for (final entry in session.drills)
-                  if (drillRepository.byId(entry.drillId) != null)
-                    _TodayDrillTile(
-                      drill: drillRepository.byId(entry.drillId)!,
-                      entry: entry,
+                for (final group in session.phaseGroups) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                    child: Text(
+                      sessionPhaseLabel(group.key),
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
+                  ),
+                  for (final entry in group.value)
+                    if (drillRepository.byId(entry.drillId) != null)
+                      _TodayDrillTile(
+                        drill: drillRepository.byId(entry.drillId)!,
+                        entry: entry,
+                      ),
+                ],
               ],
             ),
     );
