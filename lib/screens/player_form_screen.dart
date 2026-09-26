@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../models/player.dart';
-import '../services/roster_repository.dart';
+import '../services/player_repository.dart';
 
 class PlayerFormScreen extends StatefulWidget {
-  final RosterRepository rosterRepository;
+  final PlayerRepository playerRepository;
+  final String rosterId;
   final Player? existingPlayer;
 
   const PlayerFormScreen({
     super.key,
-    required this.rosterRepository,
+    required this.playerRepository,
+    required this.rosterId,
     this.existingPlayer,
   });
 
@@ -55,12 +57,13 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
     final player = Player(
       id: widget.existingPlayer?.id ??
           DateTime.now().microsecondsSinceEpoch.toString(),
+      rosterId: widget.rosterId,
       name: name,
       position: _position,
       jerseyNumber: jerseyText.isEmpty ? null : int.tryParse(jerseyText),
       notes: notesText.isEmpty ? null : notesText,
     );
-    await widget.rosterRepository.savePlayer(player);
+    await widget.playerRepository.savePlayer(player);
     if (mounted) Navigator.of(context).pop();
   }
 

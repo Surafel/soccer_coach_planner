@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../models/roster.dart';
 import '../services/attendance_repository.dart';
 import '../services/drill_repository.dart';
+import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
 import '../services/schedule_repository.dart';
+import '../services/season_auto_assign.dart';
+import '../services/season_progress_repository.dart';
 import '../services/session_repository.dart';
 import 'library_screen.dart';
-import 'roster_screen.dart';
-import 'schedule_screen.dart';
+import 'rosters_screen.dart';
 import 'sessions_screen.dart';
 import 'today_screen.dart';
 
@@ -23,7 +26,9 @@ class _RootScreenState extends State<RootScreen> {
   final _sessionRepository = SessionRepository();
   final _scheduleRepository = ScheduleRepository();
   final _rosterRepository = RosterRepository();
+  final _playerRepository = PlayerRepository();
   final _attendanceRepository = AttendanceRepository();
+  final _progressRepository = SeasonProgressRepository();
 
   int _tabIndex = 0;
   bool _loading = true;
@@ -46,8 +51,25 @@ class _RootScreenState extends State<RootScreen> {
         _sessionRepository.load(),
         _scheduleRepository.load(),
         _rosterRepository.load(),
+        _playerRepository.load(),
         _attendanceRepository.load(),
+        _progressRepository.load(),
       ]);
+      // Upgrading from before rosters existed: give any pre-existing
+      // players/schedule/attendance a real roster to live under so nothing
+      // is lost.
+      if (_rosterRepository.rosters.isEmpty && _playerRepository.players.isNotEmpty) {
+        await _rosterRepository.saveRoster(
+          const Roster(id: legacyRosterId, name: 'My Roster'),
+        );
+      }
+      await runSeasonAutoAssignment(
+        rosterRepository: _rosterRepository,
+        scheduleRepository: _scheduleRepository,
+        progressRepository: _progressRepository,
+        drillRepository: _drillRepository,
+        sessionRepository: _sessionRepository,
+      );
       setState(() => _loading = false);
     } catch (_) {
       setState(() {
@@ -85,8 +107,9 @@ class _RootScreenState extends State<RootScreen> {
         sessionRepository: _sessionRepository,
         scheduleRepository: _scheduleRepository,
         rosterRepository: _rosterRepository,
+        playerRepository: _playerRepository,
         attendanceRepository: _attendanceRepository,
-        onGoToSchedule: () => setState(() => _tabIndex = 3),
+        onGoToRosters: () => setState(() => _tabIndex = 3),
       ),
       LibraryScreen(drillRepository: _drillRepository, onChanged: _refresh),
       SessionsScreen(
@@ -95,14 +118,14 @@ class _RootScreenState extends State<RootScreen> {
         scheduleRepository: _scheduleRepository,
         onChanged: _refresh,
       ),
-      ScheduleScreen(
-        sessionRepository: _sessionRepository,
-        scheduleRepository: _scheduleRepository,
-        onChanged: _refresh,
-      ),
-      RosterScreen(
+      RostersScreen(
         rosterRepository: _rosterRepository,
+        playerRepository: _playerRepository,
+        scheduleRepository: _scheduleRepository,
         attendanceRepository: _attendanceRepository,
+        sessionRepository: _sessionRepository,
+        drillRepository: _drillRepository,
+        progressRepository: _progressRepository,
         onChanged: _refresh,
       ),
     ];
@@ -124,12 +147,8 @@ class _RootScreenState extends State<RootScreen> {
             label: 'Sessions',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Schedule',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.groups),
-            label: 'Roster',
+            label: 'Rosters',
           ),
         ],
       ),

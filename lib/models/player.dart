@@ -1,7 +1,10 @@
+import 'roster.dart';
+
 enum PlayerPosition { goalkeeper, defender, midfielder, forward, unspecified }
 
 class Player {
   final String id;
+  final String rosterId;
   final String name;
   final PlayerPosition position;
   final int? jerseyNumber;
@@ -9,6 +12,7 @@ class Player {
 
   const Player({
     required this.id,
+    required this.rosterId,
     required this.name,
     this.position = PlayerPosition.unspecified,
     this.jerseyNumber,
@@ -17,6 +21,9 @@ class Player {
 
   factory Player.fromJson(Map<String, dynamic> json) => Player(
         id: json['id'] as String,
+        // Players saved before rosters existed belong to the legacy roster
+        // created for them on upgrade, so existing data isn't lost.
+        rosterId: json['rosterId'] as String? ?? legacyRosterId,
         name: json['name'] as String,
         position: PlayerPosition.values.byName(json['position'] as String),
         jerseyNumber: json['jerseyNumber'] as int?,
@@ -25,6 +32,7 @@ class Player {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'rosterId': rosterId,
         'name': name,
         'position': position.name,
         if (jerseyNumber != null) 'jerseyNumber': jerseyNumber,
@@ -39,6 +47,7 @@ class Player {
   }) =>
       Player(
         id: id,
+        rosterId: rosterId,
         name: name ?? this.name,
         position: position ?? this.position,
         jerseyNumber: jerseyNumber ?? this.jerseyNumber,

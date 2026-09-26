@@ -19,7 +19,10 @@ class DrillRepository {
     _prefs = prefs;
     final raw = prefs.getString(_drillsKey);
     if (raw == null) {
-      _drills = buildStarterDrills();
+      // buildStarterDrills() returns a `const` list, which is unmodifiable —
+      // copy it into a growable list so saveDrill/deleteDrill work on a
+      // brand-new install without a restart in between.
+      _drills = List.of(buildStarterDrills());
       await _persist();
       return;
     }

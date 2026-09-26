@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../models/attendance_record.dart';
 import '../models/drill.dart';
+import '../models/roster.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
 import '../models/weekly_schedule.dart';
 import '../services/attendance_repository.dart';
 import '../services/drill_repository.dart';
+import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
 import '../services/schedule_repository.dart';
 import '../services/session_repository.dart';
 import '../widgets/session_card.dart';
 import 'attendance_screen.dart';
 import 'drill_detail_screen.dart';
+import 'schedule_screen.dart';
 
 DayOfWeek _todayAsDayOfWeek() {
   // DateTime.weekday is 1 (Monday) through 7 (Sunday), matching enum order.
@@ -24,8 +27,9 @@ class TodayScreen extends StatelessWidget {
   final SessionRepository sessionRepository;
   final ScheduleRepository scheduleRepository;
   final RosterRepository rosterRepository;
+  final PlayerRepository playerRepository;
   final AttendanceRepository attendanceRepository;
-  final VoidCallback onGoToSchedule;
+  final VoidCallback onGoToRosters;
 
   const TodayScreen({
     super.key,
@@ -33,82 +37,163 @@ class TodayScreen extends StatelessWidget {
     required this.sessionRepository,
     required this.scheduleRepository,
     required this.rosterRepository,
+    required this.playerRepository,
     required this.attendanceRepository,
-    required this.onGoToSchedule,
+    required this.onGoToRosters,
   });
 
   @override
   Widget build(BuildContext context) {
-    final today = _todayAsDayOfWeek();
-    final sessionId = scheduleRepository.schedule.sessionIdFor(today);
-    final session = sessionId == null ? null : sessionRepository.byId(sessionId);
+    final rosters = rosterRepository.rosters;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Today')),
-      body: session == null
+      body: rosters.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('No practice today.'),
+                  const Text('No rosters yet.'),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: onGoToSchedule,
-                    child: const Text('Edit schedule'),
+                    onPressed: onGoToRosters,
+                    child: const Text('Create a roster'),
                   ),
                 ],
               ),
             )
           : ListView(
               children: [
-                SessionCard(session: session),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AttendanceScreen(
-                                date: AttendanceRecord.isoDate(DateTime.now()),
-                                rosterRepository: rosterRepository,
-                                attendanceRepository: attendanceRepository,
-                              ),
-                            ),
-                          ),
-                          icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('Take Attendance'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: onGoToSchedule,
-                          icon: const Icon(Icons.calendar_month),
-                          label: const Text('Full Schedule'),
-                        ),
-                      ),
-                    ],
+                for (final roster in rosters)
+                  _RosterToday(
+                    roster: roster,
+                    drillRepository: drillRepository,
+                    sessionRepository: sessionRepository,
+                    scheduleRepository: scheduleRepository,
+                    playerRepository: playerRepository,
+                    attendanceRepository: attendanceRepository,
                   ),
-                ),
-                for (final group in session.phaseGroups) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                    child: Text(
-                      sessionPhaseLabel(group.key),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                  for (final entry in group.value)
-                    if (drillRepository.byId(entry.drillId) != null)
-                      _TodayDrillTile(
-                        drill: drillRepository.byId(entry.drillId)!,
-                        entry: entry,
-                      ),
-                ],
               ],
             ),
+    );
+  }
+}
+
+class _RosterToday extends StatelessWidget {
+  final Roster roster;
+  final DrillRepository drillRepository;
+  final SessionRepository sessionRepository;
+  final ScheduleRepository scheduleRepository;
+  final PlayerRepository playerRepository;
+  final AttendanceRepository attendanceRepository;
+
+  const _RosterToday({
+    required this.roster,
+    required this.drillRepository,
+    required this.sessionRepository,
+    required this.scheduleRepository,
+    required this.playerRepository,
+    required this.attendanceRepository,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final today = _todayAsDayOfWeek();
+    final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(today);
+    final session = sessionId == null ? null : sessionRepository.byId(sessionId);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Text(roster.name, style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (session == null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Row(
+                children: [
+                  const Expanded(child: Text('No practice today.')),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ScheduleScreen(
+                          rosterId: roster.id,
+                          sessionRepository: sessionRepository,
+                          scheduleRepository: scheduleRepository,
+                          onChanged: () {},
+                        ),
+                      ),
+                    ),
+                    child: const Text('Edit schedule'),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            SessionCard(session: session),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => AttendanceScreen(
+                            rosterId: roster.id,
+                            date: AttendanceRecord.isoDate(DateTime.now()),
+                            playerRepository: playerRepository,
+                            attendanceRepository: attendanceRepository,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('Take Attendance'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ScheduleScreen(
+                            rosterId: roster.id,
+                            sessionRepository: sessionRepository,
+                            scheduleRepository: scheduleRepository,
+                            onChanged: () {},
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.calendar_month),
+                      label: const Text('Full Schedule'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            for (final group in session.phaseGroups) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Text(
+                  sessionPhaseLabel(group.key),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              for (final entry in group.value)
+                if (drillRepository.byId(entry.drillId) != null)
+                  _TodayDrillTile(
+                    drill: drillRepository.byId(entry.drillId)!,
+                    entry: entry,
+                  ),
+            ],
+          ],
+          const Divider(height: 24),
+        ],
+      ),
     );
   }
 }

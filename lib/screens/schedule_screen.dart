@@ -6,12 +6,14 @@ import '../services/session_repository.dart';
 import '../widgets/day_schedule_tile.dart';
 
 class ScheduleScreen extends StatefulWidget {
+  final String rosterId;
   final SessionRepository sessionRepository;
   final ScheduleRepository scheduleRepository;
   final VoidCallback onChanged;
 
   const ScheduleScreen({
     super.key,
+    required this.rosterId,
     required this.sessionRepository,
     required this.scheduleRepository,
     required this.onChanged,
@@ -49,14 +51,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ),
       ),
     );
-    await widget.scheduleRepository.assignSession(day, selected);
+    await widget.scheduleRepository.assignSession(widget.rosterId, day, selected);
     setState(() {});
     widget.onChanged();
   }
 
   @override
   Widget build(BuildContext context) {
-    final schedule = widget.scheduleRepository.schedule;
+    final schedule = widget.scheduleRepository.scheduleFor(widget.rosterId);
     return Scaffold(
       appBar: AppBar(title: const Text('Weekly Schedule')),
       body: ListView(

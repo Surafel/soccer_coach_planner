@@ -20,21 +20,35 @@ class AttendanceRepository {
         .toList();
   }
 
-  AttendanceRecord? forDate(String date) {
+  AttendanceRecord? forRosterAndDate(String rosterId, String date) {
     for (final r in _records) {
-      if (r.date == date) return r;
+      if (r.rosterId == rosterId && r.date == date) return r;
     }
     return null;
   }
 
-  Future<void> saveAttendance(String date, List<String> presentPlayerIds) async {
-    final record = AttendanceRecord(date: date, presentPlayerIds: presentPlayerIds);
-    final index = _records.indexWhere((r) => r.date == date);
+  Future<void> saveAttendance(
+    String rosterId,
+    String date,
+    List<String> presentPlayerIds,
+  ) async {
+    final record = AttendanceRecord(
+      rosterId: rosterId,
+      date: date,
+      presentPlayerIds: presentPlayerIds,
+    );
+    final index =
+        _records.indexWhere((r) => r.rosterId == rosterId && r.date == date);
     if (index >= 0) {
       _records[index] = record;
     } else {
       _records.add(record);
     }
+    await _persist();
+  }
+
+  Future<void> deleteForRoster(String rosterId) async {
+    _records.removeWhere((r) => r.rosterId == rosterId);
     await _persist();
   }
 

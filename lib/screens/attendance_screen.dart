@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../services/attendance_repository.dart';
-import '../services/roster_repository.dart';
+import '../services/player_repository.dart';
 
 class AttendanceScreen extends StatefulWidget {
+  final String rosterId;
   final String date;
-  final RosterRepository rosterRepository;
+  final PlayerRepository playerRepository;
   final AttendanceRepository attendanceRepository;
 
   const AttendanceScreen({
     super.key,
+    required this.rosterId,
     required this.date,
-    required this.rosterRepository,
+    required this.playerRepository,
     required this.attendanceRepository,
   });
 
@@ -25,18 +27,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    final existing = widget.attendanceRepository.forDate(widget.date);
+    final existing =
+        widget.attendanceRepository.forRosterAndDate(widget.rosterId, widget.date);
     _present = {...?existing?.presentPlayerIds};
   }
 
   Future<void> _save() async {
-    await widget.attendanceRepository.saveAttendance(widget.date, _present.toList());
+    await widget.attendanceRepository.saveAttendance(
+      widget.rosterId,
+      widget.date,
+      _present.toList(),
+    );
     if (mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final players = widget.rosterRepository.players;
+    final players = widget.playerRepository.playersForRoster(widget.rosterId);
     return Scaffold(
       appBar: AppBar(
         title: Text('Attendance · ${widget.date}'),
@@ -60,7 +67,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             child: players.isEmpty
                 ? const Center(
                     child: Text(
-                      'No players yet. Add your roster in the Roster tab.',
+                      'No players yet. Add this roster\'s players first.',
                       textAlign: TextAlign.center,
                     ),
                   )
