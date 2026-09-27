@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/age_group.dart';
 import '../models/roster.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
 import '../services/roster_repository.dart';
 import 'coach_form_screen.dart';
@@ -10,12 +12,16 @@ import 'coaches_screen.dart';
 class RosterFormScreen extends StatefulWidget {
   final RosterRepository rosterRepository;
   final CoachRepository coachRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final Roster? existingRoster;
 
   const RosterFormScreen({
     super.key,
     required this.rosterRepository,
     required this.coachRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     this.existingRoster,
   });
 
@@ -62,6 +68,8 @@ class _RosterFormScreenState extends State<RosterFormScreen> {
         builder: (_) => CoachesScreen(
           coachRepository: widget.coachRepository,
           rosterRepository: widget.rosterRepository,
+          availabilityRepository: widget.availabilityRepository,
+          assignmentRepository: widget.assignmentRepository,
           onChanged: () {},
         ),
       ),

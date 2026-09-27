@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/coach.dart';
 import '../models/roster.dart';
 import '../services/attendance_repository.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
@@ -30,6 +32,8 @@ class _RootScreenState extends State<RootScreen> {
   final _rosterRepository = RosterRepository();
   final _playerRepository = PlayerRepository();
   final _coachRepository = CoachRepository();
+  final _availabilityRepository = CoachAvailabilityRepository();
+  final _assignmentRepository = CoachAssignmentRepository();
   final _attendanceRepository = AttendanceRepository();
   final _progressRepository = SeasonProgressRepository();
 
@@ -56,6 +60,8 @@ class _RootScreenState extends State<RootScreen> {
         _rosterRepository.load(),
         _playerRepository.load(),
         _coachRepository.load(),
+        _availabilityRepository.load(),
+        _assignmentRepository.load(),
         _attendanceRepository.load(),
         _progressRepository.load(),
       ]);
@@ -127,6 +133,9 @@ class _RootScreenState extends State<RootScreen> {
         scheduleRepository: _scheduleRepository,
         rosterRepository: _rosterRepository,
         playerRepository: _playerRepository,
+        coachRepository: _coachRepository,
+        availabilityRepository: _availabilityRepository,
+        assignmentRepository: _assignmentRepository,
         attendanceRepository: _attendanceRepository,
         onGoToRosters: () => setState(() => _tabIndex = 3),
         onChanged: _refresh,
@@ -142,6 +151,8 @@ class _RootScreenState extends State<RootScreen> {
         rosterRepository: _rosterRepository,
         playerRepository: _playerRepository,
         coachRepository: _coachRepository,
+        availabilityRepository: _availabilityRepository,
+        assignmentRepository: _assignmentRepository,
         scheduleRepository: _scheduleRepository,
         attendanceRepository: _attendanceRepository,
         sessionRepository: _sessionRepository,

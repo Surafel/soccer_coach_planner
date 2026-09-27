@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/attendance_repository.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
@@ -16,6 +18,8 @@ class RostersScreen extends StatefulWidget {
   final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
   final CoachRepository coachRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final ScheduleRepository scheduleRepository;
   final AttendanceRepository attendanceRepository;
   final SessionRepository sessionRepository;
@@ -28,6 +32,8 @@ class RostersScreen extends StatefulWidget {
     required this.rosterRepository,
     required this.playerRepository,
     required this.coachRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     required this.scheduleRepository,
     required this.attendanceRepository,
     required this.sessionRepository,
@@ -47,6 +53,8 @@ class _RostersScreenState extends State<RostersScreen> {
         builder: (_) => RosterFormScreen(
           rosterRepository: widget.rosterRepository,
           coachRepository: widget.coachRepository,
+          availabilityRepository: widget.availabilityRepository,
+          assignmentRepository: widget.assignmentRepository,
         ),
       ),
     );
@@ -62,6 +70,8 @@ class _RostersScreenState extends State<RostersScreen> {
           rosterRepository: widget.rosterRepository,
           playerRepository: widget.playerRepository,
           coachRepository: widget.coachRepository,
+          availabilityRepository: widget.availabilityRepository,
+          assignmentRepository: widget.assignmentRepository,
           scheduleRepository: widget.scheduleRepository,
           attendanceRepository: widget.attendanceRepository,
           sessionRepository: widget.sessionRepository,

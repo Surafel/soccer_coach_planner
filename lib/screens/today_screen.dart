@@ -6,6 +6,9 @@ import '../models/roster.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
 import '../services/attendance_repository.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
+import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
@@ -22,6 +25,9 @@ class TodayScreen extends StatelessWidget {
   final ScheduleRepository scheduleRepository;
   final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
+  final CoachRepository coachRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final AttendanceRepository attendanceRepository;
   final VoidCallback onGoToRosters;
   final VoidCallback onChanged;
@@ -33,6 +39,9 @@ class TodayScreen extends StatelessWidget {
     required this.scheduleRepository,
     required this.rosterRepository,
     required this.playerRepository,
+    required this.coachRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     required this.attendanceRepository,
     required this.onGoToRosters,
     required this.onChanged,
@@ -66,7 +75,11 @@ class TodayScreen extends StatelessWidget {
                     drillRepository: drillRepository,
                     sessionRepository: sessionRepository,
                     scheduleRepository: scheduleRepository,
+                    rosterRepository: rosterRepository,
                     playerRepository: playerRepository,
+                    coachRepository: coachRepository,
+                    availabilityRepository: availabilityRepository,
+                    assignmentRepository: assignmentRepository,
                     attendanceRepository: attendanceRepository,
                     onChanged: onChanged,
                   ),
@@ -81,7 +94,11 @@ class _RosterToday extends StatelessWidget {
   final DrillRepository drillRepository;
   final SessionRepository sessionRepository;
   final ScheduleRepository scheduleRepository;
+  final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
+  final CoachRepository coachRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final AttendanceRepository attendanceRepository;
   final VoidCallback onChanged;
 
@@ -90,7 +107,11 @@ class _RosterToday extends StatelessWidget {
     required this.drillRepository,
     required this.sessionRepository,
     required this.scheduleRepository,
+    required this.rosterRepository,
     required this.playerRepository,
+    required this.coachRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     required this.attendanceRepository,
     required this.onChanged,
   });
@@ -123,6 +144,10 @@ class _RosterToday extends StatelessWidget {
                           rosterId: roster.id,
                           sessionRepository: sessionRepository,
                           scheduleRepository: scheduleRepository,
+                          rosterRepository: rosterRepository,
+                          coachRepository: coachRepository,
+                          availabilityRepository: availabilityRepository,
+                          assignmentRepository: assignmentRepository,
                           onChanged: onChanged,
                         ),
                       ),
@@ -163,6 +188,10 @@ class _RosterToday extends StatelessWidget {
                             rosterId: roster.id,
                             sessionRepository: sessionRepository,
                             scheduleRepository: scheduleRepository,
+                            rosterRepository: rosterRepository,
+                            coachRepository: coachRepository,
+                            availabilityRepository: availabilityRepository,
+                            assignmentRepository: assignmentRepository,
                             onChanged: onChanged,
                           ),
                         ),

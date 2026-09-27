@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../models/coach.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
 import '../services/roster_repository.dart';
+import 'coach_availability_screen.dart';
 import 'coach_form_screen.dart';
 
 class CoachesScreen extends StatefulWidget {
   final CoachRepository coachRepository;
   final RosterRepository rosterRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final VoidCallback onChanged;
 
   const CoachesScreen({
     super.key,
     required this.coachRepository,
     required this.rosterRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     required this.onChanged,
   });
 
@@ -65,9 +72,22 @@ class _CoachesScreenState extends State<CoachesScreen> {
         );
       }
     }
+    await widget.assignmentRepository.removeCoachEverywhere(coach.id);
+    await widget.availabilityRepository.deleteForCoach(coach.id);
     await widget.coachRepository.deleteCoach(coach.id);
     setState(() {});
     widget.onChanged();
+  }
+
+  Future<void> _openAvailability(Coach coach) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CoachAvailabilityScreen(
+          coach: coach,
+          availabilityRepository: widget.availabilityRepository,
+        ),
+      ),
+    );
   }
 
   String _groupsFor(Coach coach) {
@@ -101,9 +121,19 @@ class _CoachesScreenState extends State<CoachesScreen> {
                     title: Text(coach.name),
                     subtitle: Text(_groupsFor(coach)),
                     onTap: () => _openForm(existing: coach),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _deleteCoach(coach),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.event_available_outlined),
+                          tooltip: 'Set availability',
+                          onPressed: () => _openAvailability(coach),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _deleteCoach(coach),
+                        ),
+                      ],
                     ),
                   ),
                 );

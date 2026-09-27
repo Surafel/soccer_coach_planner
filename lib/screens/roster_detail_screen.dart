@@ -5,6 +5,8 @@ import '../models/attendance_record.dart';
 import '../models/player.dart';
 import '../models/roster.dart';
 import '../services/attendance_repository.dart';
+import '../services/coach_assignment_repository.dart';
+import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
@@ -24,6 +26,8 @@ class RosterDetailScreen extends StatefulWidget {
   final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
   final CoachRepository coachRepository;
+  final CoachAvailabilityRepository availabilityRepository;
+  final CoachAssignmentRepository assignmentRepository;
   final ScheduleRepository scheduleRepository;
   final AttendanceRepository attendanceRepository;
   final SessionRepository sessionRepository;
@@ -37,6 +41,8 @@ class RosterDetailScreen extends StatefulWidget {
     required this.rosterRepository,
     required this.playerRepository,
     required this.coachRepository,
+    required this.availabilityRepository,
+    required this.assignmentRepository,
     required this.scheduleRepository,
     required this.attendanceRepository,
     required this.sessionRepository,
@@ -58,6 +64,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
         builder: (_) => RosterFormScreen(
           rosterRepository: widget.rosterRepository,
           coachRepository: widget.coachRepository,
+          availabilityRepository: widget.availabilityRepository,
+          assignmentRepository: widget.assignmentRepository,
           existingRoster: _roster,
         ),
       ),
@@ -92,6 +100,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     await widget.playerRepository.deleteForRoster(roster.id);
     await widget.scheduleRepository.deleteRoster(roster.id);
     await widget.attendanceRepository.deleteForRoster(roster.id);
+    await widget.assignmentRepository.deleteForRoster(roster.id);
     await widget.progressRepository.deleteForRoster(roster.id);
     await widget.rosterRepository.deleteRoster(roster.id);
     widget.onChanged();
@@ -144,6 +153,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           rosterId: widget.rosterId,
           sessionRepository: widget.sessionRepository,
           scheduleRepository: widget.scheduleRepository,
+          rosterRepository: widget.rosterRepository,
+          coachRepository: widget.coachRepository,
+          availabilityRepository: widget.availabilityRepository,
+          assignmentRepository: widget.assignmentRepository,
           onChanged: widget.onChanged,
         ),
       ),
