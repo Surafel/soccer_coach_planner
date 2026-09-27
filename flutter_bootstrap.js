@@ -36,9 +36,17 @@ if (!window._flutter) {
 }
 _flutter.buildConfig = {"engineRevision":"72f2b18bb094f92f62a3113a8075240ebb59affa","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"}]};
 
-
+// Custom override (kept in source web/ so `flutter build web` uses it as-is
+// instead of regenerating it): force CanvasKit to load from the files
+// bundled alongside this app instead of Google's gstatic.com CDN. On some
+// iOS/Safari networks gstatic.com is blocked or unreachable, which otherwise
+// leaves the app on a permanent blank screen because the renderer never
+// finishes loading and there's no timeout/fallback.
 _flutter.loader.load({
+  config: {
+    canvasKitBaseUrl: "canvaskit/"
+  },
   serviceWorkerSettings: {
-    serviceWorkerVersion: "2390591966"
+    serviceWorkerVersion: "806330003"
   }
 });
