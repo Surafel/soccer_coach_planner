@@ -408,10 +408,24 @@ const _weeks = [
 
 String _weekId(int week) => week.toString().padLeft(2, '0');
 
-/// The 36 drills that are new for this curriculum (Game + Drill phase
-/// content for all 16 weeks, plus the 4 reusable scrimmage formats).
-/// None have a curated video — coaches get a "Search for a video" fallback
-/// on the detail screen instead of a guessed link.
+/// None of these 36 drills (Game + Drill phase content for all 16 weeks,
+/// plus the 4 reusable scrimmage formats) has a video specific to its exact
+/// name — inventing a video id for a drill this app made up isn't possible.
+/// Instead, each one embeds a real, verified reference video for its skill
+/// category (found and confirmed to exist via YouTube's oEmbed endpoint),
+/// so every drill in the library has something to watch, and the specific
+/// id can be swapped for an exact match later without any model changes.
+const _categoryReferenceVideoIds = {
+  DrillCategory.ballControl: 'CosG13seo3o', // Progressive Soccer: 10 Ball Mastery Soccer Drills for Kids U6 U8 U10 U12
+  DrillCategory.oneVOne: 'npeM7yvN_8A', // Soccerspective: 1v1 Dribbling Drill for U10-U12
+  DrillCategory.passing: '6RGJBj1tNC8', // Progressive Soccer: 6 Essential Soccer Passing Drills for Kids
+  DrillCategory.possession: '9jQRQsnyfKw', // Soccerspective: 8v3 Rondo Possession Drill
+  DrillCategory.attackingPrinciples: 'OzTEOTEVMPg', // World Class Coaching: Coaching Width and Depth
+  DrillCategory.defendingPrinciples: 'IHeUKdsVHHg', // KS Performance: Press & Cover Defending Drill (U8-U10+)
+  DrillCategory.smallSidedGames: '9ojC_3pd-3k', // KS Performance: Small Sided Games, 5 Variations
+  DrillCategory.gameRealism: 'EvZdkjyrx5k', // Dyches Fam: Kids Soccer Drills, Training, and Scrimmage
+};
+
 List<Drill> buildU10CurriculumDrills() => [
       for (final w in _weeks) ...[
         Drill(
@@ -421,6 +435,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.gameSkills,
           description: w.gameDescription,
           ageRange: _ageRange,
+          videoId: _categoryReferenceVideoIds[w.gameCategory],
         ),
         Drill(
           id: 'drill-u10-w${_weekId(w.week)}-drill',
@@ -429,6 +444,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.drillSkills,
           description: w.drillDescription,
           ageRange: _ageRange,
+          videoId: _categoryReferenceVideoIds[w.drillCategory],
         ),
       ],
       for (final s in _scrimmageFormats)
@@ -439,6 +455,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: s.skillTags,
           description: s.description,
           ageRange: _ageRange,
+          videoId: _categoryReferenceVideoIds[s.category],
         ),
     ];
 

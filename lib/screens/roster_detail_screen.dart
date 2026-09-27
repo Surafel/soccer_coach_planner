@@ -5,6 +5,7 @@ import '../models/attendance_record.dart';
 import '../models/player.dart';
 import '../models/roster.dart';
 import '../services/attendance_repository.dart';
+import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
@@ -22,6 +23,7 @@ class RosterDetailScreen extends StatefulWidget {
   final String rosterId;
   final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
+  final CoachRepository coachRepository;
   final ScheduleRepository scheduleRepository;
   final AttendanceRepository attendanceRepository;
   final SessionRepository sessionRepository;
@@ -34,6 +36,7 @@ class RosterDetailScreen extends StatefulWidget {
     required this.rosterId,
     required this.rosterRepository,
     required this.playerRepository,
+    required this.coachRepository,
     required this.scheduleRepository,
     required this.attendanceRepository,
     required this.sessionRepository,
@@ -54,6 +57,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       MaterialPageRoute(
         builder: (_) => RosterFormScreen(
           rosterRepository: widget.rosterRepository,
+          coachRepository: widget.coachRepository,
           existingRoster: _roster,
         ),
       ),
@@ -99,7 +103,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       MaterialPageRoute(
         builder: (_) => PlayerFormScreen(
           playerRepository: widget.playerRepository,
-          rosterId: widget.rosterId,
+          rosterRepository: widget.rosterRepository,
+          initialRosterId: widget.rosterId,
           existingPlayer: existing,
         ),
       ),
@@ -198,10 +203,11 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                     roster.ageGroup == null ? 'No age group' : ageGroupLabel(roster.ageGroup!),
                   ),
                 ),
-                if (roster.coachNames.isEmpty)
+                if (roster.coachIds.isEmpty)
                   const Chip(label: Text('No coaches assigned'))
                 else
-                  for (final coach in roster.coachNames) Chip(label: Text(coach)),
+                  for (final name in widget.coachRepository.namesFor(roster.coachIds))
+                    Chip(label: Text(name)),
               ],
             ),
           ),

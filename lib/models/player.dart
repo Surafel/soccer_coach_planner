@@ -6,6 +6,7 @@ class Player {
   final String id;
   final String rosterId;
   final String name;
+  final int? age;
   final PlayerPosition position;
   final int? jerseyNumber;
   final String? notes;
@@ -14,6 +15,7 @@ class Player {
     required this.id,
     required this.rosterId,
     required this.name,
+    this.age,
     this.position = PlayerPosition.unspecified,
     this.jerseyNumber,
     this.notes,
@@ -25,6 +27,7 @@ class Player {
         // created for them on upgrade, so existing data isn't lost.
         rosterId: json['rosterId'] as String? ?? legacyRosterId,
         name: json['name'] as String,
+        age: json['age'] as int?,
         position: PlayerPosition.values.byName(json['position'] as String),
         jerseyNumber: json['jerseyNumber'] as int?,
         notes: json['notes'] as String?,
@@ -34,6 +37,7 @@ class Player {
         'id': id,
         'rosterId': rosterId,
         'name': name,
+        if (age != null) 'age': age,
         'position': position.name,
         if (jerseyNumber != null) 'jerseyNumber': jerseyNumber,
         if (notes != null) 'notes': notes,
@@ -41,14 +45,18 @@ class Player {
 
   Player copyWith({
     String? name,
+    String? rosterId,
+    int? age,
+    bool clearAge = false,
     PlayerPosition? position,
     int? jerseyNumber,
     String? notes,
   }) =>
       Player(
         id: id,
-        rosterId: rosterId,
+        rosterId: rosterId ?? this.rosterId,
         name: name ?? this.name,
+        age: clearAge ? null : age ?? this.age,
         position: position ?? this.position,
         jerseyNumber: jerseyNumber ?? this.jerseyNumber,
         notes: notes ?? this.notes,

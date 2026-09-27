@@ -4,6 +4,7 @@ import '../data/starter_drills.dart';
 import '../services/drill_repository.dart';
 import '../widgets/drill_browser.dart';
 import 'drill_detail_screen.dart';
+import 'drill_form_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   final DrillRepository drillRepository;
@@ -56,6 +57,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
+  Future<void> _addDrill() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DrillFormScreen(drillRepository: widget.drillRepository),
+      ),
+    );
+    setState(() {});
+    widget.onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,9 +84,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
         drills: widget.drillRepository.drills,
         onTap: (drill) => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => DrillDetailScreen(drill: drill),
+            builder: (_) => DrillDetailScreen(
+              drill: drill,
+              drillRepository: widget.drillRepository,
+              onChanged: () {
+                setState(() {});
+                widget.onChanged();
+              },
+            ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addDrill,
+        child: const Icon(Icons.add),
       ),
     );
   }

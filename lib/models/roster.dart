@@ -12,13 +12,20 @@ class Roster {
   final String id;
   final String name;
   final AgeGroup? ageGroup;
-  final List<String> coachNames;
+  final List<String> coachIds;
+
+  /// Coach names from before coaches were their own entity. Only ever
+  /// populated by [fromJson] when loading data saved before this, so a
+  /// one-time upgrade pass can turn them into real [Coach] records and
+  /// populate [coachIds]. Empty otherwise.
+  final List<String> legacyCoachNames;
 
   const Roster({
     required this.id,
     required this.name,
     this.ageGroup,
-    this.coachNames = const [],
+    this.coachIds = const [],
+    this.legacyCoachNames = const [],
   });
 
   factory Roster.fromJson(Map<String, dynamic> json) => Roster(
@@ -27,26 +34,29 @@ class Roster {
         ageGroup: (json['ageGroup'] as String?) == null
             ? null
             : AgeGroup.values.byName(json['ageGroup'] as String),
-        coachNames: (json['coachNames'] as List?)?.cast<String>() ?? const [],
+        coachIds: (json['coachIds'] as List?)?.cast<String>() ?? const [],
+        legacyCoachNames: json['coachIds'] == null
+            ? (json['coachNames'] as List?)?.cast<String>() ?? const []
+            : const [],
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         if (ageGroup != null) 'ageGroup': ageGroup!.name,
-        'coachNames': coachNames,
+        'coachIds': coachIds,
       };
 
   Roster copyWith({
     String? name,
     AgeGroup? ageGroup,
     bool clearAgeGroup = false,
-    List<String>? coachNames,
+    List<String>? coachIds,
   }) =>
       Roster(
         id: id,
         name: name ?? this.name,
         ageGroup: clearAgeGroup ? null : ageGroup ?? this.ageGroup,
-        coachNames: coachNames ?? this.coachNames,
+        coachIds: coachIds ?? this.coachIds,
       );
 }

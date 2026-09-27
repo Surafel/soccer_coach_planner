@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../models/age_group.dart';
 import '../models/roster.dart';
+import '../services/coach_repository.dart';
 import '../services/roster_repository.dart';
+import 'coach_form_screen.dart';
+import 'coaches_screen.dart';
 
 class RosterFormScreen extends StatefulWidget {
   final RosterRepository rosterRepository;
+  final CoachRepository coachRepository;
   final Roster? existingRoster;
 
   const RosterFormScreen({
     super.key,
     required this.rosterRepository,
+    required this.coachRepository,
     this.existingRoster,
   });
 
@@ -20,7 +25,7 @@ class RosterFormScreen extends StatefulWidget {
 
 class _RosterFormScreenState extends State<RosterFormScreen> {
   late final TextEditingController _nameController;
-  late List<TextEditingController> _coachControllers;
+  late Set<String> _selectedCoachIds;
   AgeGroup? _ageGroup;
 
   @override
@@ -28,30 +33,40 @@ class _RosterFormScreenState extends State<RosterFormScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.existingRoster?.name);
     _ageGroup = widget.existingRoster?.ageGroup;
-    _coachControllers = [
-      for (final name in widget.existingRoster?.coachNames ?? const [])
-        TextEditingController(text: name),
-    ];
+    _selectedCoachIds = {...widget.existingRoster?.coachIds ?? const []};
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    for (final c in _coachControllers) {
-      c.dispose();
-    }
     super.dispose();
   }
 
-  void _addCoachField() {
-    setState(() => _coachControllers.add(TextEditingController()));
+  Future<void> _addNewCoach() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CoachFormScreen(coachRepository: widget.coachRepository),
+      ),
+    );
+    setState(() {
+      // Newly added coach is the last one in the repository's list.
+      if (widget.coachRepository.coaches.isNotEmpty) {
+        _selectedCoachIds.add(widget.coachRepository.coaches.last.id);
+      }
+    });
   }
 
-  void _removeCoachField(int index) {
-    setState(() {
-      _coachControllers[index].dispose();
-      _coachControllers.removeAt(index);
-    });
+  Future<void> _manageCoaches() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CoachesScreen(
+          coachRepository: widget.coachRepository,
+          rosterRepository: widget.rosterRepository,
+          onChanged: () {},
+        ),
+      ),
+    );
+    setState(() {});
   }
 
   Future<void> _save() async {
@@ -62,16 +77,12 @@ class _RosterFormScreenState extends State<RosterFormScreen> {
       );
       return;
     }
-    final coachNames = _coachControllers
-        .map((c) => c.text.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
     final roster = Roster(
       id: widget.existingRoster?.id ??
           DateTime.now().microsecondsSinceEpoch.toString(),
       name: name,
       ageGroup: _ageGroup,
-      coachNames: coachNames,
+      coachIds: _selectedCoachIds.toList(),
     );
     await widget.rosterRepository.saveRoster(roster);
     if (mounted) Navigator.of(context).pop();
@@ -118,39 +129,36 @@ class _RosterFormScreenState extends State<RosterFormScreen> {
                 child: Text('Coaches', style: Theme.of(context).textTheme.titleMedium),
               ),
               TextButton.icon(
-                onPressed: _addCoachField,
+                onPressed: _addNewCoach,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add coach'),
+                label: const Text('New coach'),
               ),
             ],
           ),
-          if (_coachControllers.isEmpty)
+          if (widget.coachRepository.coaches.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('No coaches added yet.'),
-            ),
-          for (var i = 0; i < _coachControllers.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _coachControllers[i],
-                      decoration: InputDecoration(
-                        labelText: 'Coach ${i + 1} name',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: () => _removeCoachField(i),
-                  ),
-                ],
+              child: Text('No coaches yet. Tap "New coach" to add one.'),
+            )
+          else
+            for (final coach in widget.coachRepository.coaches)
+              CheckboxListTile(
+                value: _selectedCoachIds.contains(coach.id),
+                title: Text(coach.name),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (checked) => setState(() {
+                  if (checked == true) {
+                    _selectedCoachIds.add(coach.id);
+                  } else {
+                    _selectedCoachIds.remove(coach.id);
+                  }
+                }),
               ),
-            ),
+          TextButton(
+            onPressed: _manageCoaches,
+            child: const Text('Manage all coaches'),
+          ),
         ],
       ),
     );

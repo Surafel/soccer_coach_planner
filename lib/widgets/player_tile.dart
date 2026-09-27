@@ -21,18 +21,31 @@ String _positionLabel(PlayerPosition position) {
 
 class PlayerTile extends StatelessWidget {
   final Player player;
+
+  /// The player's group name, shown alongside position when set. Used by
+  /// the global Players list where players from every group are mixed
+  /// together; omitted in a single group's own player list.
+  final String? groupLabel;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const PlayerTile({
     super.key,
     required this.player,
+    this.groupLabel,
     required this.onTap,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final details = [
+      if (player.age != null) 'Age ${player.age}',
+      _positionLabel(player.position),
+      if (groupLabel != null) groupLabel!,
+      if (player.notes != null && player.notes!.isNotEmpty) 'has notes',
+    ];
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
@@ -44,11 +57,7 @@ class PlayerTile extends StatelessWidget {
           ),
         ),
         title: Text(player.name),
-        subtitle: Text(
-          player.notes != null && player.notes!.isNotEmpty
-              ? '${_positionLabel(player.position)} · has notes'
-              : _positionLabel(player.position),
-        ),
+        subtitle: Text(details.join(' · ')),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: onDelete,

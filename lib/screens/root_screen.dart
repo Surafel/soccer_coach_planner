@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/coach.dart';
 import '../models/roster.dart';
 import '../services/attendance_repository.dart';
+import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
@@ -10,8 +12,8 @@ import '../services/season_auto_assign.dart';
 import '../services/season_progress_repository.dart';
 import '../services/session_repository.dart';
 import 'library_screen.dart';
-import 'rosters_screen.dart';
 import 'sessions_screen.dart';
+import 'team_hub_screen.dart';
 import 'today_screen.dart';
 
 class RootScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _RootScreenState extends State<RootScreen> {
   final _scheduleRepository = ScheduleRepository();
   final _rosterRepository = RosterRepository();
   final _playerRepository = PlayerRepository();
+  final _coachRepository = CoachRepository();
   final _attendanceRepository = AttendanceRepository();
   final _progressRepository = SeasonProgressRepository();
 
@@ -52,6 +55,7 @@ class _RootScreenState extends State<RootScreen> {
         _scheduleRepository.load(),
         _rosterRepository.load(),
         _playerRepository.load(),
+        _coachRepository.load(),
         _attendanceRepository.load(),
         _progressRepository.load(),
       ]);
@@ -62,6 +66,21 @@ class _RootScreenState extends State<RootScreen> {
         await _rosterRepository.saveRoster(
           const Roster(id: legacyRosterId, name: 'My Roster'),
         );
+      }
+      // Upgrading from before coaches were their own entity: turn each
+      // roster's old free-text coach names into real Coach records.
+      for (final roster in _rosterRepository.rosters) {
+        if (roster.legacyCoachNames.isEmpty) continue;
+        final ids = <String>[];
+        for (var i = 0; i < roster.legacyCoachNames.length; i++) {
+          final coach = Coach(
+            id: '${DateTime.now().microsecondsSinceEpoch}-$i',
+            name: roster.legacyCoachNames[i],
+          );
+          await _coachRepository.saveCoach(coach);
+          ids.add(coach.id);
+        }
+        await _rosterRepository.saveRoster(roster.copyWith(coachIds: ids));
       }
       await runSeasonAutoAssignment(
         rosterRepository: _rosterRepository,
@@ -119,9 +138,10 @@ class _RootScreenState extends State<RootScreen> {
         scheduleRepository: _scheduleRepository,
         onChanged: _refresh,
       ),
-      RostersScreen(
+      TeamHubScreen(
         rosterRepository: _rosterRepository,
         playerRepository: _playerRepository,
+        coachRepository: _coachRepository,
         scheduleRepository: _scheduleRepository,
         attendanceRepository: _attendanceRepository,
         sessionRepository: _sessionRepository,
@@ -149,7 +169,7 @@ class _RootScreenState extends State<RootScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.groups),
-            label: 'Rosters',
+            label: 'Team',
           ),
         ],
       ),

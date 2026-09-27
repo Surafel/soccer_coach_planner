@@ -2,21 +2,94 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/drill.dart';
+import '../services/drill_repository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/youtube_embed.dart';
+import 'drill_form_screen.dart';
 
-class DrillDetailScreen extends StatelessWidget {
+class DrillDetailScreen extends StatefulWidget {
   final Drill drill;
+  final DrillRepository? drillRepository;
+  final VoidCallback? onChanged;
 
-  const DrillDetailScreen({super.key, required this.drill});
+  const DrillDetailScreen({
+    super.key,
+    required this.drill,
+    this.drillRepository,
+    this.onChanged,
+  });
+
+  @override
+  State<DrillDetailScreen> createState() => _DrillDetailScreenState();
+}
+
+class _DrillDetailScreenState extends State<DrillDetailScreen> {
+  late Drill drill;
+
+  @override
+  void initState() {
+    super.initState();
+    drill = widget.drill;
+  }
+
+  Future<void> _edit() async {
+    final repo = widget.drillRepository;
+    if (repo == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DrillFormScreen(
+          drillRepository: repo,
+          existingDrill: drill,
+        ),
+      ),
+    );
+    final updated = repo.byId(drill.id);
+    if (updated != null) setState(() => drill = updated);
+    widget.onChanged?.call();
+  }
+
+  Future<void> _delete() async {
+    final repo = widget.drillRepository;
+    if (repo == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete drill?'),
+        content: Text('This removes "${drill.name}" from the library.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await repo.deleteDrill(drill.id);
+    widget.onChanged?.call();
+    if (mounted) Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
     final categoryColor = AppColors.colorFor(drill.category);
     final videoId = drill.videoId;
+    final canEdit = widget.drillRepository != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(drill.name)),
+      appBar: AppBar(
+        title: Text(drill.name),
+        actions: canEdit
+            ? [
+                IconButton(icon: const Icon(Icons.edit_outlined), onPressed: _edit),
+                IconButton(icon: const Icon(Icons.delete_outline), onPressed: _delete),
+              ]
+            : null,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

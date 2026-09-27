@@ -6,12 +6,14 @@ import '../models/roster.dart';
 class RosterCard extends StatelessWidget {
   final Roster roster;
   final int playerCount;
+  final List<String> coachNames;
   final VoidCallback onTap;
 
   const RosterCard({
     super.key,
     required this.roster,
     required this.playerCount,
+    required this.coachNames,
     required this.onTap,
   });
 
@@ -19,9 +21,8 @@ class RosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ageGroupText =
         roster.ageGroup == null ? 'No age group' : ageGroupLabel(roster.ageGroup!);
-    final coachText = roster.coachNames.isEmpty
-        ? 'No coaches assigned'
-        : roster.coachNames.join(', ');
+    final coachText =
+        coachNames.isEmpty ? 'No coaches assigned' : coachNames.join(', ');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

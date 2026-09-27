@@ -13,6 +13,6 @@ void main() {
     expect(find.text('Today'), findsWidgets);
     expect(find.text('Drills'), findsOneWidget);
     expect(find.text('Sessions'), findsOneWidget);
-    expect(find.text('Rosters'), findsWidgets);
+    expect(find.text('Team'), findsWidgets);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/attendance_repository.dart';
+import '../services/coach_repository.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
@@ -14,6 +15,7 @@ import 'roster_form_screen.dart';
 class RostersScreen extends StatefulWidget {
   final RosterRepository rosterRepository;
   final PlayerRepository playerRepository;
+  final CoachRepository coachRepository;
   final ScheduleRepository scheduleRepository;
   final AttendanceRepository attendanceRepository;
   final SessionRepository sessionRepository;
@@ -25,6 +27,7 @@ class RostersScreen extends StatefulWidget {
     super.key,
     required this.rosterRepository,
     required this.playerRepository,
+    required this.coachRepository,
     required this.scheduleRepository,
     required this.attendanceRepository,
     required this.sessionRepository,
@@ -41,7 +44,10 @@ class _RostersScreenState extends State<RostersScreen> {
   Future<void> _createRoster() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RosterFormScreen(rosterRepository: widget.rosterRepository),
+        builder: (_) => RosterFormScreen(
+          rosterRepository: widget.rosterRepository,
+          coachRepository: widget.coachRepository,
+        ),
       ),
     );
     setState(() {});
@@ -55,6 +61,7 @@ class _RostersScreenState extends State<RostersScreen> {
           rosterId: rosterId,
           rosterRepository: widget.rosterRepository,
           playerRepository: widget.playerRepository,
+          coachRepository: widget.coachRepository,
           scheduleRepository: widget.scheduleRepository,
           attendanceRepository: widget.attendanceRepository,
           sessionRepository: widget.sessionRepository,
@@ -86,6 +93,7 @@ class _RostersScreenState extends State<RostersScreen> {
                 return RosterCard(
                   roster: roster,
                   playerCount: widget.playerRepository.playersForRoster(roster.id).length,
+                  coachNames: widget.coachRepository.namesFor(roster.coachIds),
                   onTap: () => _openRoster(roster.id),
                 );
               },
