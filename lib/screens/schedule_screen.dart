@@ -35,29 +35,47 @@ class ScheduleScreen extends StatefulWidget {
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
+/// Returned by the session picker for "No practice", so it can be told
+/// apart from the sheet being dismissed without a choice (which returns null).
+const _noPractice = '';
+
 class _ScheduleScreenState extends State<ScheduleScreen> {
+  /// Returns the chosen session id, [_noPractice], or null if the coach
+  /// closed the sheet without choosing.
   Future<String?> _pickSession() {
     final sessions = widget.sessionRepository.sessions;
-    return showModalBottomSheet<String?>(
+    return showModalBottomSheet<String>(
       context: context,
+      // Let the sheet grow past the default ~half-screen cap; the list
+      // scrolls once there are more sessions than fit.
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               title: const Text('No practice'),
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () => Navigator.of(context).pop(_noPractice),
             ),
             const Divider(height: 1),
-            for (final session in sessions)
-              ListTile(
-                title: Text(session.name),
-                onTap: () => Navigator.of(context).pop(session.id),
-              ),
             if (sessions.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('No saved sessions yet. Build one in the Sessions tab.'),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sessions.length,
+                  itemBuilder: (context, i) => ListTile(
+                    title: Text(sessions[i].name),
+                    onTap: () => Navigator.of(context).pop(sessions[i].id),
+                  ),
+                ),
               ),
           ],
         ),
@@ -67,7 +85,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _assignDate(String date) async {
     final selected = await _pickSession();
-    await widget.scheduleRepository.assignSession(widget.rosterId, date, selected);
+    if (selected == null) return; // dismissed — leave the date unchanged
+    await widget.scheduleRepository.assignSession(
+      widget.rosterId,
+      date,
+      selected == _noPractice ? null : selected,
+    );
     setState(() {});
     widget.onChanged();
   }
