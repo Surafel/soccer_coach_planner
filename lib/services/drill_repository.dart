@@ -6,6 +6,37 @@ import '../models/drill.dart';
 
 const _drillsKey = 'drills_v1';
 
+/// Earlier versions gave every built-in curriculum drill one shared
+/// "reference" video per category, so different drills showed the same
+/// unrelated video. These are those ids; [DrillRepository.load] clears them
+/// from curriculum drills saved by those versions so the drills fall back to
+/// a search for their own name. A video a coach set themselves is kept.
+const _retiredCategoryVideoIds = {
+  'CosG13seo3o',
+  'npeM7yvN_8A',
+  '6RGJBj1tNC8',
+  '9jQRQsnyfKw',
+  'OzTEOTEVMPg',
+  'IHeUKdsVHHg',
+  '9ojC_3pd-3k',
+  'EvZdkjyrx5k',
+};
+
+const _curriculumDrillPrefixes = ['drill-u10-', 'drill-u12-'];
+
+bool _hasRetiredCategoryVideo(Drill d) =>
+    _retiredCategoryVideoIds.contains(d.videoId) &&
+    _curriculumDrillPrefixes.any(d.id.startsWith);
+
+Drill _withoutVideo(Drill d) => Drill(
+      id: d.id,
+      name: d.name,
+      category: d.category,
+      skillTags: d.skillTags,
+      description: d.description,
+      ageRange: d.ageRange,
+    );
+
 class DrillRepository {
   List<Drill> _drills = [];
   SharedPreferences? _prefs;
@@ -28,6 +59,13 @@ class DrillRepository {
     }
     final data = jsonDecode(raw) as List<dynamic>;
     _drills = data.map((e) => Drill.fromJson(e as Map<String, dynamic>)).toList();
+
+    if (_drills.any(_hasRetiredCategoryVideo)) {
+      _drills = [
+        for (final d in _drills) _hasRetiredCategoryVideo(d) ? _withoutVideo(d) : d,
+      ];
+      await _persist();
+    }
   }
 
   Drill? byId(String id) {

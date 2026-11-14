@@ -5,7 +5,6 @@ import '../models/season_week.dart';
 import '../models/session.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
-import 'category_reference_videos.dart';
 
 /// The built-in U12 season plan: a 16-week curriculum in the same US Soccer
 /// grassroots format as U10 (Warm-up → Game → Drill → Scrimmage), built for
@@ -534,11 +533,11 @@ Drill _toDrill(String id, _ActivityContent a) => Drill(
       skillTags: a.skills,
       description: a.description,
       ageRange: _ageRange,
-      videoId: categoryReferenceVideoIds[a.category],
     );
 
 /// The plan's 44 drills: Game + Drill for each of the 16 weeks, the 4
-/// warm-ups, and the 4 scrimmage formats.
+/// warm-ups, and the 4 scrimmage formats. Like U10's, they have no videoId,
+/// so the detail screen offers a YouTube search for each drill's own name.
 List<Drill> buildU12CurriculumDrills() => [
       for (final w in _weeks) ...[
         _toDrill(_gameDrillId(w.week), w.game),

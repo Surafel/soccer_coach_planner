@@ -60,6 +60,21 @@ void main() {
     }
   });
 
+  test('no two built-in drills share a video', () {
+    final owners = <String, String>{};
+    final drills = [
+      ...buildStarterDrills(),
+      for (final group in curriculumAgeGroups) ...seasonCurriculumFor(group)!.drills,
+    ];
+    for (final d in drills) {
+      final videoId = d.videoId;
+      if (videoId == null) continue;
+      expect(owners.containsKey(videoId), isFalse,
+          reason: '${d.id} reuses ${owners[videoId]}\'s video $videoId');
+      owners[videoId] = d.id;
+    }
+  });
+
   test('age groups without a plan return null', () {
     expect(seasonCurriculumFor(AgeGroup.u14), isNull);
     expect(seasonCurriculumFor(null), isNull);

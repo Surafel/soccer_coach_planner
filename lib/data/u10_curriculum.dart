@@ -5,7 +5,6 @@ import '../models/season_week.dart';
 import '../models/session.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
-import 'category_reference_videos.dart';
 
 /// The built-in U10 season plan: a 16-week periodization curriculum in the
 /// standard US Soccer grassroots practice format — every practice runs
@@ -410,6 +409,10 @@ const _weeks = [
 
 String _weekId(int week) => week.toString().padLeft(2, '0');
 
+/// These drills were written for this app, so there's no video of each one
+/// to embed. They have no videoId, and the detail screen offers a YouTube
+/// search for the drill's own name instead; a coach can add a video link
+/// to any of them.
 List<Drill> buildU10CurriculumDrills() => [
       for (final w in _weeks) ...[
         Drill(
@@ -419,7 +422,6 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.gameSkills,
           description: w.gameDescription,
           ageRange: _ageRange,
-          videoId: categoryReferenceVideoIds[w.gameCategory],
         ),
         Drill(
           id: 'drill-u10-w${_weekId(w.week)}-drill',
@@ -428,7 +430,6 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.drillSkills,
           description: w.drillDescription,
           ageRange: _ageRange,
-          videoId: categoryReferenceVideoIds[w.drillCategory],
         ),
       ],
       for (final s in _scrimmageFormats)
@@ -439,7 +440,6 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: s.skillTags,
           description: s.description,
           ageRange: _ageRange,
-          videoId: categoryReferenceVideoIds[s.category],
         ),
     ];
 

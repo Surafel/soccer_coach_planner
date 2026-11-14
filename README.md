@@ -23,7 +23,9 @@ The app has four tabs:
   Defending Principles, Small-Sided Games, Game Realism).
 - Create, edit, and delete your own drills with skill tags and an age range.
 - Every drill has a video: an embedded YouTube tutorial when one is set, or a
-  one-tap YouTube search for the drill when it isn't.
+  one-tap YouTube search for the drill when it isn't. The season-plan drills
+  start with the search, since they were written for this app; add your own
+  video link to any drill from its edit screen.
 
 ### Sessions
 - Build a practice session by picking drills and setting a duration for each.
