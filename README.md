@@ -29,9 +29,10 @@ The app has four tabs:
 - Build a practice session by picking drills and setting a duration for each.
 - Sessions follow the US Soccer grassroots practice structure:
   **Warm-up → Game → Drill → Scrimmage**.
-- **Season Plan:** a built-in 16-week U10 curriculum, organised into four
-  4-week training blocks. Add a single week or the whole season to your
-  sessions.
+- **Season Plan:** built-in 16-week curricula for **U10** (60-minute
+  practices) and **U12** (80-minute practices for the 9v9 game, covering
+  offside and the build-out line), each organised into four 4-week training
+  blocks. Add a single week or the whole season to your sessions.
 
 ### Team
 - **Groups (rosters):** manage several teams, each with its own age group
@@ -47,11 +48,12 @@ The app has four tabs:
 
 ### Automatic season progression
 
-Groups with the U10 age group get the season plan assigned for them. When you
+Groups with the U10 or U12 age group get their age group's season plan
+assigned for them. When you
 open the app on a Saturday, that week's session is placed on that Saturday's
 date and the group advances to the next week. If you changed the session on
 the previous auto-assigned Saturday, the plan stays on the same week instead
-of advancing.
+of advancing. Changing a group's age group starts the new plan from week 1.
 
 There is no background processing, so this only happens when the app is opened
 on the Saturday itself.
@@ -145,7 +147,8 @@ flutter test
 ```
 lib/
   main.dart      App entry point and theme
-  data/          Built-in content: starter drills and the U10 season curriculum
+  data/          Built-in content: starter drills and the U10/U12 season curricula
+                 (season_curricula.dart maps each age group to its plan)
   models/        Plain data classes (Drill, Session, Roster, Player, Coach, ...)
   services/      Repositories that persist each model, plus season auto-assignment
   screens/       One file per screen; root_screen.dart hosts the four tabs

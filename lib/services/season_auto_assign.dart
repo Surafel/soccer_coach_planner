@@ -1,5 +1,4 @@
-import '../data/u10_curriculum.dart';
-import '../models/age_group.dart';
+import '../data/season_curricula.dart';
 import '../models/attendance_record.dart';
 import '../models/season_progress.dart';
 import 'drill_repository.dart';
@@ -9,7 +8,7 @@ import 'season_progress_repository.dart';
 import 'session_repository.dart';
 
 /// Runs once per app start. On Saturdays, every roster with a built-in
-/// curriculum (currently just U10) gets that week's session automatically
+/// curriculum (see [curriculumAgeGroups]) gets that week's session automatically
 /// assigned to that specific Saturday's calendar date — unless a coach has
 /// changed what's on the *previous* auto-assigned Saturday, in which case
 /// progress pauses on that same week instead of advancing, and picks back
@@ -30,18 +29,17 @@ Future<void> runSeasonAutoAssignment({
   if (today.weekday != DateTime.saturday) return;
   final todayIso = AttendanceRecord.isoDate(today);
 
-  final u10Weeks = buildU10SeasonPlan();
-  final u10Drills = buildU10CurriculumDrills();
-  final u10Sessions = buildU10CurriculumSessions();
-
   for (final roster in rosterRepository.rosters) {
-    if (roster.ageGroup != AgeGroup.u10) continue;
+    final curriculum = seasonCurriculumFor(roster.ageGroup);
+    if (curriculum == null) continue;
 
     final progress = progressRepository.forRoster(roster.id);
     if (progress != null && progress.lastAssignedDate == todayIso) continue;
 
     final int nextWeek;
-    if (progress == null) {
+    // Progress from a different plan (the roster's age group was changed)
+    // doesn't carry over: the new plan starts from its own week 1.
+    if (progress == null || !curriculum.ownsSession(progress.lastAssignedSessionId)) {
       nextWeek = 1;
     } else {
       final pastAssignment = scheduleRepository
@@ -50,14 +48,14 @@ Future<void> runSeasonAutoAssignment({
       final untouchedSinceLastAssignment =
           pastAssignment == progress.lastAssignedSessionId;
       nextWeek = untouchedSinceLastAssignment
-          ? (progress.currentWeek + 1).clamp(1, u10Weeks.length)
+          ? (progress.currentWeek + 1).clamp(1, curriculum.weeks.length)
           : progress.currentWeek; // overridden — pause on the same week
     }
 
-    final weekInfo = u10Weeks.firstWhere((w) => w.weekNumber == nextWeek);
-    final session = u10Sessions.firstWhere((s) => s.id == weekInfo.sessionId);
+    final weekInfo = curriculum.weeks.firstWhere((w) => w.weekNumber == nextWeek);
+    final session = curriculum.sessionById(weekInfo.sessionId);
 
-    for (final drill in u10Drills) {
+    for (final drill in curriculum.drills) {
       if (drillRepository.byId(drill.id) == null) {
         await drillRepository.saveDrill(drill);
       }

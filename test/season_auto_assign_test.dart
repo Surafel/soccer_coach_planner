@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:soccer_coach_planner/data/u10_curriculum.dart';
+import 'package:soccer_coach_planner/data/u12_curriculum.dart';
 import 'package:soccer_coach_planner/models/age_group.dart';
 import 'package:soccer_coach_planner/models/attendance_record.dart';
 import 'package:soccer_coach_planner/models/roster.dart';
@@ -125,5 +126,35 @@ void main() {
       scheduleRepository.scheduleFor('no-age-group').sessionIdFor(_iso(_week1Saturday)),
       isNull,
     );
+  });
+
+  test('a U12 roster is auto-assigned from the U12 plan', () async {
+    await rosterRepository.saveRoster(
+      const Roster(id: 'u12', name: 'U12 Red', ageGroup: AgeGroup.u12),
+    );
+    await runFor(_week1Saturday);
+    await runFor(_week2Saturday);
+    expect(progressRepository.forRoster('u12')?.currentWeek, 2);
+    expect(
+      scheduleRepository.scheduleFor('u12').sessionIdFor(_iso(_week2Saturday)),
+      buildU12SeasonPlan()[1].sessionId,
+    );
+    // The U12 plan's drills were seeded so the session can be shown.
+    for (final drill in buildU12CurriculumDrills()) {
+      expect(drillRepository.byId(drill.id), isNotNull);
+    }
+  });
+
+  test('changing a roster\'s age group restarts at week 1 of the new plan', () async {
+    await runFor(_week1Saturday);
+    await runFor(_week2Saturday);
+    expect(progressRepository.forRoster(rosterId)?.currentWeek, 2);
+
+    await rosterRepository.saveRoster(
+      const Roster(id: rosterId, name: 'U10 Blue', ageGroup: AgeGroup.u12),
+    );
+    await runFor(_week3Saturday);
+    expect(progressRepository.forRoster(rosterId)?.currentWeek, 1);
+    expect(sessionIdOn(_week3Saturday), buildU12SeasonPlan().first.sessionId);
   });
 }

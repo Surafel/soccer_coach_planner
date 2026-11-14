@@ -1,9 +1,11 @@
 import '../models/age_group.dart';
+import '../models/season_curriculum.dart';
 import '../models/drill.dart';
 import '../models/season_week.dart';
 import '../models/session.dart';
 import '../models/session_drill.dart';
 import '../models/session_phase.dart';
+import 'category_reference_videos.dart';
 
 /// The built-in U10 season plan: a 16-week periodization curriculum in the
 /// standard US Soccer grassroots practice format — every practice runs
@@ -408,24 +410,6 @@ const _weeks = [
 
 String _weekId(int week) => week.toString().padLeft(2, '0');
 
-/// None of these 36 drills (Game + Drill phase content for all 16 weeks,
-/// plus the 4 reusable scrimmage formats) has a video specific to its exact
-/// name — inventing a video id for a drill this app made up isn't possible.
-/// Instead, each one embeds a real, verified reference video for its skill
-/// category (found and confirmed to exist via YouTube's oEmbed endpoint),
-/// so every drill in the library has something to watch, and the specific
-/// id can be swapped for an exact match later without any model changes.
-const _categoryReferenceVideoIds = {
-  DrillCategory.ballControl: 'CosG13seo3o', // Progressive Soccer: 10 Ball Mastery Soccer Drills for Kids U6 U8 U10 U12
-  DrillCategory.oneVOne: 'npeM7yvN_8A', // Soccerspective: 1v1 Dribbling Drill for U10-U12
-  DrillCategory.passing: '6RGJBj1tNC8', // Progressive Soccer: 6 Essential Soccer Passing Drills for Kids
-  DrillCategory.possession: '9jQRQsnyfKw', // Soccerspective: 8v3 Rondo Possession Drill
-  DrillCategory.attackingPrinciples: 'OzTEOTEVMPg', // World Class Coaching: Coaching Width and Depth
-  DrillCategory.defendingPrinciples: 'IHeUKdsVHHg', // KS Performance: Press & Cover Defending Drill (U8-U10+)
-  DrillCategory.smallSidedGames: '9ojC_3pd-3k', // KS Performance: Small Sided Games, 5 Variations
-  DrillCategory.gameRealism: 'EvZdkjyrx5k', // Dyches Fam: Kids Soccer Drills, Training, and Scrimmage
-};
-
 List<Drill> buildU10CurriculumDrills() => [
       for (final w in _weeks) ...[
         Drill(
@@ -435,7 +419,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.gameSkills,
           description: w.gameDescription,
           ageRange: _ageRange,
-          videoId: _categoryReferenceVideoIds[w.gameCategory],
+          videoId: categoryReferenceVideoIds[w.gameCategory],
         ),
         Drill(
           id: 'drill-u10-w${_weekId(w.week)}-drill',
@@ -444,7 +428,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: w.drillSkills,
           description: w.drillDescription,
           ageRange: _ageRange,
-          videoId: _categoryReferenceVideoIds[w.drillCategory],
+          videoId: categoryReferenceVideoIds[w.drillCategory],
         ),
       ],
       for (final s in _scrimmageFormats)
@@ -455,7 +439,7 @@ List<Drill> buildU10CurriculumDrills() => [
           skillTags: s.skillTags,
           description: s.description,
           ageRange: _ageRange,
-          videoId: _categoryReferenceVideoIds[s.category],
+          videoId: categoryReferenceVideoIds[s.category],
         ),
     ];
 
@@ -526,3 +510,11 @@ const u10SeasonBlocks = [
     description: 'Game realism, set pieces, and tournament readiness.',
   ),
 ];
+
+SeasonCurriculum buildU10Curriculum() => SeasonCurriculum(
+      ageGroup: u10AgeGroup,
+      drills: buildU10CurriculumDrills(),
+      sessions: buildU10CurriculumSessions(),
+      weeks: buildU10SeasonPlan(),
+      blocks: u10SeasonBlocks,
+    );

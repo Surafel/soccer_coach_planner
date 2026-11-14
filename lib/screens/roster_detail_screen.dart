@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/season_curricula.dart';
 import '../models/age_group.dart';
 import '../models/attendance_record.dart';
 import '../models/player.dart';
@@ -184,6 +185,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           drillRepository: widget.drillRepository,
           sessionRepository: widget.sessionRepository,
           onChanged: widget.onChanged,
+          initialAgeGroup: _roster.ageGroup,
         ),
       ),
     );
@@ -194,6 +196,14 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     final roster = _roster;
     final players = widget.playerRepository.playersForRoster(roster.id);
     final progress = widget.progressRepository.forRoster(roster.id);
+    final curriculum = seasonCurriculumFor(roster.ageGroup);
+    // Ignore progress left over from another age group's plan; the
+    // auto-assignment restarts at week 1 of this plan on Saturday.
+    final planProgress = curriculum != null &&
+            progress != null &&
+            curriculum.ownsSession(progress.lastAssignedSessionId)
+        ? progress
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -224,16 +234,17 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
               ],
             ),
           ),
-          if (roster.ageGroup == AgeGroup.u10)
+          if (curriculum != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      progress == null
+                      planProgress == null
                           ? 'Season plan starts this Saturday.'
-                          : 'Season plan: Week ${progress.currentWeek} of 16 '
+                          : 'Season plan: Week ${planProgress.currentWeek} '
+                              'of ${curriculum.weeks.length} '
                               '(auto-assigned to Saturday).',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

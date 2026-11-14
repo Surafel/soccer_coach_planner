@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../data/u10_curriculum.dart';
+import '../data/season_curricula.dart';
 import '../models/age_group.dart';
+import '../models/season_curriculum.dart';
 import '../services/drill_repository.dart';
 import '../services/session_repository.dart';
 import 'session_builder_screen.dart';
@@ -15,11 +16,16 @@ class SeasonPlanScreen extends StatefulWidget {
   final SessionRepository sessionRepository;
   final VoidCallback onChanged;
 
+  /// The age group to show first, e.g. the roster the screen was opened
+  /// from. Falls back to the first age group with a plan.
+  final AgeGroup? initialAgeGroup;
+
   const SeasonPlanScreen({
     super.key,
     required this.drillRepository,
     required this.sessionRepository,
     required this.onChanged,
+    this.initialAgeGroup,
   });
 
   @override
@@ -27,19 +33,32 @@ class SeasonPlanScreen extends StatefulWidget {
 }
 
 class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
-  AgeGroup _ageGroup = AgeGroup.u10;
+  late AgeGroup _ageGroup;
+  SeasonCurriculum? _curriculum;
 
   @override
   void initState() {
     super.initState();
-    _ensureCurriculumDrillsSeeded();
+    final initial = widget.initialAgeGroup;
+    _selectAgeGroup(
+      initial != null && curriculumAgeGroups.contains(initial)
+          ? initial
+          : curriculumAgeGroups.first,
+    );
+  }
+
+  void _selectAgeGroup(AgeGroup group) {
+    _ageGroup = group;
+    _curriculum = seasonCurriculumFor(group);
+    final curriculum = _curriculum;
+    if (curriculum != null) _ensureCurriculumDrillsSeeded(curriculum);
   }
 
   // Seeds the curriculum's drills (idempotent, fixed ids) so week previews
   // always show real drill names, whether or not a coach has "added" that
   // week's session yet.
-  Future<void> _ensureCurriculumDrillsSeeded() async {
-    for (final drill in buildU10CurriculumDrills()) {
+  Future<void> _ensureCurriculumDrillsSeeded(SeasonCurriculum curriculum) async {
+    for (final drill in curriculum.drills) {
       if (widget.drillRepository.byId(drill.id) == null) {
         await widget.drillRepository.saveDrill(drill);
       }
@@ -47,8 +66,8 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _addWeek(String sessionId) async {
-    final session = buildU10CurriculumSessions().firstWhere((s) => s.id == sessionId);
+  Future<void> _addWeek(SeasonCurriculum curriculum, String sessionId) async {
+    final session = curriculum.sessionById(sessionId);
     await widget.sessionRepository.saveSession(session);
     widget.onChanged();
     if (mounted) {
@@ -58,14 +77,16 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
     }
   }
 
-  Future<void> _addFullSeason() async {
+  Future<void> _addFullSeason(SeasonCurriculum curriculum) async {
+    final label = ageGroupLabel(curriculum.ageGroup);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add the full U10 season?'),
-        content: const Text(
-          'Adds all 16 weekly sessions to My Sessions. Assign each week to '
-          'a practice day in the Schedule tab as the season progresses.',
+        title: Text('Add the full $label season?'),
+        content: Text(
+          'Adds all ${curriculum.sessions.length} weekly sessions to My '
+          'Sessions. Assign each week to a practice day in the Schedule tab '
+          'as the season progresses.',
         ),
         actions: [
           TextButton(
@@ -81,20 +102,20 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
     );
     if (confirmed != true) return;
 
-    for (final session in buildU10CurriculumSessions()) {
+    for (final session in curriculum.sessions) {
       await widget.sessionRepository.saveSession(session);
     }
     widget.onChanged();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Full U10 season added to My Sessions.')),
+        SnackBar(content: Text('Full $label season added to My Sessions.')),
       );
     }
   }
 
-  void _openWeek(String sessionId) {
-    final existing = widget.sessionRepository.byId(sessionId) ??
-        buildU10CurriculumSessions().firstWhere((s) => s.id == sessionId);
+  void _openWeek(SeasonCurriculum curriculum, String sessionId) {
+    final existing =
+        widget.sessionRepository.byId(sessionId) ?? curriculum.sessionById(sessionId);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SessionBuilderScreen(
@@ -108,7 +129,7 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final seasonPlan = buildU10SeasonPlan();
+    final curriculum = _curriculum;
 
     return Scaffold(
       appBar: AppBar(
@@ -117,7 +138,7 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
           IconButton(
             icon: const Icon(Icons.playlist_add),
             tooltip: 'Add the full season',
-            onPressed: _ageGroup == AgeGroup.u10 ? _addFullSeason : null,
+            onPressed: curriculum == null ? null : () => _addFullSeason(curriculum),
           ),
         ],
       ),
@@ -136,12 +157,13 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
                       label: Text(ageGroupLabel(group)),
                       selected: _ageGroup == group,
                       onSelected: (_) {
-                        setState(() => _ageGroup = group);
-                        if (group != AgeGroup.u10) {
+                        setState(() => _selectAgeGroup(group));
+                        if (_curriculum == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                '${ageGroupLabel(group)} curriculum is coming soon — U10 is the only age group with a built-in plan right now.',
+                                '${ageGroupLabel(group)} curriculum is coming soon — '
+                                '${curriculumAgeGroupsLabel()} have built-in plans right now.',
                               ),
                             ),
                           );
@@ -154,7 +176,7 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
           ),
           const Divider(height: 1),
           Expanded(
-            child: _ageGroup != AgeGroup.u10
+            child: curriculum == null
                 ? Center(
                     child: Text(
                       '${ageGroupLabel(_ageGroup)} curriculum is coming soon.',
@@ -164,7 +186,7 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
-                      for (final block in u10SeasonBlocks) ...[
+                      for (final block in curriculum.blocks) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 16, 12, 4),
                           child: Column(
@@ -182,17 +204,18 @@ class _SeasonPlanScreenState extends State<SeasonPlanScreen> {
                             ],
                           ),
                         ),
-                        for (final week in seasonPlan.where((w) => w.blockTitle == block.title))
+                        for (final week
+                            in curriculum.weeks.where((w) => w.blockTitle == block.title))
                           Card(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             child: ListTile(
-                              onTap: () => _openWeek(week.sessionId),
+                              onTap: () => _openWeek(curriculum, week.sessionId),
                               title: Text('Week ${week.weekNumber}'),
                               subtitle: Text(week.focus),
                               trailing: IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
                                 tooltip: 'Add to My Sessions',
-                                onPressed: () => _addWeek(week.sessionId),
+                                onPressed: () => _addWeek(curriculum, week.sessionId),
                               ),
                             ),
                           ),

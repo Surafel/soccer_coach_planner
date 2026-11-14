@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/season_curricula.dart';
 import '../models/age_group.dart';
 import '../models/roster.dart';
 import '../services/coach_assignment_repository.dart';
@@ -118,10 +119,11 @@ class _RosterFormScreenState extends State<RosterFormScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<AgeGroup?>(
             value: _ageGroup,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Age group',
-              border: OutlineInputBorder(),
-              helperText: 'Only U10 has a built-in season plan right now.',
+              border: const OutlineInputBorder(),
+              helperText:
+                  '${curriculumAgeGroupsLabel()} have built-in season plans.',
             ),
             items: [
               const DropdownMenuItem(value: null, child: Text('Not set')),
