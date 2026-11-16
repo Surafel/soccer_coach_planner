@@ -37,7 +37,7 @@ void main() {
   final pickedDay = DateTime(today.year, today.month, today.day <= 15 ? 20 : 5);
   String iso(DateTime d) => AttendanceRecord.isoDate(d);
 
-  Future<void> pumpToday(WidgetTester tester) async {
+  Future<void> pumpToday(WidgetTester tester, {DateTime Function()? clock}) async {
     SharedPreferences.setMockInitialValues({});
     final drills = DrillRepository();
     final sessions = SessionRepository();
@@ -75,6 +75,7 @@ void main() {
         attendanceRepository: attendance,
         onGoToRosters: () {},
         onChanged: () {},
+        clock: clock ?? DateTime.now,
       ),
     ));
   }
@@ -122,5 +123,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(formatScheduleDate(iso(pickedDay))), findsOneWidget);
     expect(find.text('Picked Session'), findsOneWidget);
+  });
+
+  group('at midnight', () {
+    // The fake clock starts 30 seconds before the end of today.
+    late DateTime fakeNow;
+
+    setUp(() => fakeNow = DateTime(today.year, today.month, today.day, 23, 59, 30));
+
+    testWidgets('moves to the new day without any interaction', (tester) async {
+      await pumpToday(tester, clock: () => fakeNow);
+      expect(find.text('Today Session'), findsOneWidget);
+
+      fakeNow = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 31));
+
+      expect(find.text(formatScheduleDate(iso(tomorrow))), findsOneWidget);
+      expect(find.text('Tomorrow Session'), findsOneWidget);
+    });
+
+    testWidgets('keeps a date the coach picked', (tester) async {
+      await pumpToday(tester, clock: () => fakeNow);
+      await tester.tap(find.byTooltip('Previous day'));
+      await tester.pump();
+
+      fakeNow = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 31));
+
+      expect(find.text(formatScheduleDate(iso(yesterday))), findsOneWidget);
+    });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/age_group.dart';
@@ -33,6 +35,9 @@ class TodayScreen extends StatefulWidget {
   final VoidCallback onGoToRosters;
   final VoidCallback onChanged;
 
+  /// The current time. Tests replace it to simulate the day changing.
+  final DateTime Function() clock;
+
   const TodayScreen({
     super.key,
     required this.drillRepository,
@@ -46,6 +51,7 @@ class TodayScreen extends StatefulWidget {
     required this.attendanceRepository,
     required this.onGoToRosters,
     required this.onChanged,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -57,19 +63,51 @@ class _TodayScreenState extends State<TodayScreen> {
   /// screen still shows "today" if the app is left open past midnight).
   DateTime? _pickedDate;
 
+  /// Redraws the screen just after midnight, so "today" moves to the new
+  /// day even if nobody touches the app.
+  Timer? _midnightTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleMidnightRefresh();
+  }
+
+  @override
+  void dispose() {
+    _midnightTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final now = widget.clock();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    // A second past midnight, so the new date is definitely in effect.
+    _midnightTimer = Timer(nextMidnight.difference(now) + const Duration(seconds: 1), () {
+      if (!mounted) return;
+      setState(() {});
+      // Recomputed from the clock each time, so a timer that fired late
+      // (e.g. the app was in the background) or a clock change can't drift.
+      _scheduleMidnightRefresh();
+    });
+  }
+
+  DateTime _now() => widget.clock();
+
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  DateTime get _date => _pickedDate ?? _dateOnly(DateTime.now());
+  DateTime get _date => _pickedDate ?? _dateOnly(_now());
 
-  bool get _isToday => _date == _dateOnly(DateTime.now());
+  bool get _isToday => _date == _dateOnly(_now());
 
   void _setDate(DateTime date) {
     final day = _dateOnly(date);
-    setState(() => _pickedDate = day == _dateOnly(DateTime.now()) ? null : day);
+    setState(() => _pickedDate = day == _dateOnly(_now()) ? null : day);
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final now = _now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
