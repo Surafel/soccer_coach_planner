@@ -15,11 +15,12 @@ import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
 import '../services/schedule_repository.dart';
 import '../services/session_repository.dart';
+import '../widgets/schedule_entry_tile.dart';
 import 'attendance_screen.dart';
 import 'drill_detail_screen.dart';
 import 'schedule_screen.dart';
 
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends StatefulWidget {
   final DrillRepository drillRepository;
   final SessionRepository sessionRepository;
   final ScheduleRepository scheduleRepository;
@@ -48,8 +49,40 @@ class TodayScreen extends StatelessWidget {
   });
 
   @override
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  /// The date a coach picked, or null to follow the current day (so the
+  /// screen still shows "today" if the app is left open past midnight).
+  DateTime? _pickedDate;
+
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime get _date => _pickedDate ?? _dateOnly(DateTime.now());
+
+  bool get _isToday => _date == _dateOnly(DateTime.now());
+
+  void _setDate(DateTime date) {
+    final day = _dateOnly(date);
+    setState(() => _pickedDate = day == _dateOnly(DateTime.now()) ? null : day);
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (picked != null) _setDate(picked);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final rosters = rosterRepository.rosters;
+    final rosters = widget.rosterRepository.rosters;
+    final date = AttendanceRecord.isoDate(_date);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Today')),
@@ -61,37 +94,120 @@ class TodayScreen extends StatelessWidget {
                   const Text('No rosters yet.'),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: onGoToRosters,
+                    onPressed: widget.onGoToRosters,
                     child: const Text('Create a roster'),
                   ),
                 ],
               ),
             )
-          : ListView(
-              padding: const EdgeInsets.only(bottom: 12),
+          : Column(
               children: [
-                for (final roster in rosters)
-                  _RosterToday(
-                    roster: roster,
-                    drillRepository: drillRepository,
-                    sessionRepository: sessionRepository,
-                    scheduleRepository: scheduleRepository,
-                    rosterRepository: rosterRepository,
-                    playerRepository: playerRepository,
-                    coachRepository: coachRepository,
-                    availabilityRepository: availabilityRepository,
-                    assignmentRepository: assignmentRepository,
-                    attendanceRepository: attendanceRepository,
-                    onChanged: onChanged,
+                _DateSelector(
+                  label: formatScheduleDate(date),
+                  isToday: _isToday,
+                  onPrevious: () => _setDate(_date.subtract(const Duration(days: 1))),
+                  onNext: () => _setDate(_date.add(const Duration(days: 1))),
+                  onPick: _pickDate,
+                  onToday: () => setState(() => _pickedDate = null),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    children: [
+                      for (final roster in rosters)
+                        _RosterToday(
+                          roster: roster,
+                          date: date,
+                          isToday: _isToday,
+                          drillRepository: widget.drillRepository,
+                          sessionRepository: widget.sessionRepository,
+                          scheduleRepository: widget.scheduleRepository,
+                          rosterRepository: widget.rosterRepository,
+                          playerRepository: widget.playerRepository,
+                          coachRepository: widget.coachRepository,
+                          availabilityRepository: widget.availabilityRepository,
+                          assignmentRepository: widget.assignmentRepository,
+                          attendanceRepository: widget.attendanceRepository,
+                          onChanged: widget.onChanged,
+                        ),
+                    ],
                   ),
+                ),
               ],
             ),
     );
   }
 }
 
+/// The bar at the top of the Today screen for choosing which date's
+/// practices to show.
+class _DateSelector extends StatelessWidget {
+  final String label;
+  final bool isToday;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onPick;
+  final VoidCallback onToday;
+
+  const _DateSelector({
+    required this.label,
+    required this.isToday,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onPick,
+    required this.onToday,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerLowest,
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Previous day',
+              onPressed: onPrevious,
+            ),
+            Expanded(
+              child: TextButton.icon(
+                onPressed: onPick,
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: Text(
+                  label,
+                  style: theme.textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Next day',
+              onPressed: onNext,
+            ),
+            // Same width either way, so the date doesn't shift when it appears.
+            Visibility(
+              visible: !isToday,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: TextButton(onPressed: onToday, child: const Text('Today')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RosterToday extends StatelessWidget {
   final Roster roster;
+  final String date;
+  final bool isToday;
   final DrillRepository drillRepository;
   final SessionRepository sessionRepository;
   final ScheduleRepository scheduleRepository;
@@ -105,6 +221,8 @@ class _RosterToday extends StatelessWidget {
 
   const _RosterToday({
     required this.roster,
+    required this.date,
+    required this.isToday,
     required this.drillRepository,
     required this.sessionRepository,
     required this.scheduleRepository,
@@ -151,8 +269,7 @@ class _RosterToday extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final todayIso = AttendanceRecord.isoDate(DateTime.now());
-    final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(todayIso);
+    final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(date);
     final session = sessionId == null ? null : sessionRepository.byId(sessionId);
     final ageGroup = roster.ageGroup;
 
@@ -198,7 +315,9 @@ class _RosterToday extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
               child: Row(
                 children: [
-                  const Expanded(child: Text('No practice today.')),
+                  Expanded(
+                    child: Text(isToday ? 'No practice today.' : 'No practice this day.'),
+                  ),
                   TextButton(
                     onPressed: () => _openSchedule(context),
                     child: const Text('Edit schedule'),
@@ -220,7 +339,7 @@ class _RosterToday extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _openAttendance(context, todayIso),
+                      onPressed: () => _openAttendance(context, date),
                       icon: const Icon(Icons.fact_check_outlined),
                       label: const Text('Take Attendance'),
                     ),
