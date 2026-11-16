@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/age_group.dart';
 import '../models/attendance_record.dart';
 import '../models/drill.dart';
 import '../models/roster.dart';
@@ -14,7 +15,6 @@ import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
 import '../services/schedule_repository.dart';
 import '../services/session_repository.dart';
-import '../widgets/session_card.dart';
 import 'attendance_screen.dart';
 import 'drill_detail_screen.dart';
 import 'schedule_screen.dart';
@@ -68,6 +68,7 @@ class TodayScreen extends StatelessWidget {
               ),
             )
           : ListView(
+              padding: const EdgeInsets.only(bottom: 12),
               children: [
                 for (final roster in rosters)
                   _RosterToday(
@@ -116,65 +117,110 @@ class _RosterToday extends StatelessWidget {
     required this.onChanged,
   });
 
+  void _openSchedule(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ScheduleScreen(
+          rosterId: roster.id,
+          sessionRepository: sessionRepository,
+          scheduleRepository: scheduleRepository,
+          rosterRepository: rosterRepository,
+          coachRepository: coachRepository,
+          availabilityRepository: availabilityRepository,
+          assignmentRepository: assignmentRepository,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  void _openAttendance(BuildContext context, String date) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AttendanceScreen(
+          rosterId: roster.id,
+          date: date,
+          playerRepository: playerRepository,
+          attendanceRepository: attendanceRepository,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final todayIso = AttendanceRecord.isoDate(DateTime.now());
     final sessionId = scheduleRepository.scheduleFor(roster.id).sessionIdFor(todayIso);
     final session = sessionId == null ? null : sessionRepository.byId(sessionId);
+    final ageGroup = roster.ageGroup;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    // One card per group, so each group's practice reads as its own block
+    // instead of running together down the page.
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 16, 12, 0),
+      elevation: 2,
+      // White body so the card stands out from the tinted page background.
+      color: colors.surfaceContainerLowest,
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Text(roster.name, style: Theme.of(context).textTheme.titleMedium),
+          Container(
+            color: colors.primaryContainer,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Icon(Icons.groups, color: colors.onPrimaryContainer),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    roster.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (ageGroup != null)
+                  Text(
+                    ageGroupLabel(ageGroup),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+              ],
+            ),
           ),
           if (session == null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
               child: Row(
                 children: [
                   const Expanded(child: Text('No practice today.')),
                   TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ScheduleScreen(
-                          rosterId: roster.id,
-                          sessionRepository: sessionRepository,
-                          scheduleRepository: scheduleRepository,
-                          rosterRepository: rosterRepository,
-                          coachRepository: coachRepository,
-                          availabilityRepository: availabilityRepository,
-                          assignmentRepository: assignmentRepository,
-                          onChanged: onChanged,
-                        ),
-                      ),
-                    ),
+                    onPressed: () => _openSchedule(context),
                     child: const Text('Edit schedule'),
                   ),
                 ],
               ),
             )
           else ...[
-            SessionCard(session: session),
+            ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.list_alt)),
+              title: Text(session.name),
+              subtitle: Text(
+                '${session.drills.length} drills · ${session.totalDurationMinutes} min',
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AttendanceScreen(
-                            rosterId: roster.id,
-                            date: AttendanceRecord.isoDate(DateTime.now()),
-                            playerRepository: playerRepository,
-                            attendanceRepository: attendanceRepository,
-                          ),
-                        ),
-                      ),
+                      onPressed: () => _openAttendance(context, todayIso),
                       icon: const Icon(Icons.fact_check_outlined),
                       label: const Text('Take Attendance'),
                     ),
@@ -182,20 +228,7 @@ class _RosterToday extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ScheduleScreen(
-                            rosterId: roster.id,
-                            sessionRepository: sessionRepository,
-                            scheduleRepository: scheduleRepository,
-                            rosterRepository: rosterRepository,
-                            coachRepository: coachRepository,
-                            availabilityRepository: availabilityRepository,
-                            assignmentRepository: assignmentRepository,
-                            onChanged: onChanged,
-                          ),
-                        ),
-                      ),
+                      onPressed: () => _openSchedule(context),
                       icon: const Icon(Icons.calendar_month),
                       label: const Text('Full Schedule'),
                     ),
@@ -205,10 +238,10 @@ class _RosterToday extends StatelessWidget {
             ),
             for (final group in session.phaseGroups) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Text(
                   sessionPhaseLabel(group.key),
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: theme.textTheme.titleSmall?.copyWith(color: colors.primary),
                 ),
               ),
               for (final entry in group.value)
@@ -218,8 +251,8 @@ class _RosterToday extends StatelessWidget {
                     entry: entry,
                   ),
             ],
+            const SizedBox(height: 8),
           ],
-          const Divider(height: 24),
         ],
       ),
     );
