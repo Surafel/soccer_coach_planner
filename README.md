@@ -1,8 +1,9 @@
 # Soccer Coach Planner
 
-An offline practice planner for youth soccer coaches. Build practice sessions
-from a drill library, put them on a calendar, manage your teams and coaches,
-and take attendance — all stored on your device, with no account or server.
+A practice planner for youth soccer coaches. Build practice sessions from a
+drill library, put them on a calendar, manage your teams and coaches, and take
+attendance. Data stays on your device, or, once the club sets up Firebase,
+is shared so every approved coach sees the same data.
 
 Built with [Flutter](https://flutter.dev). Runs on Android, iOS, and the web.
 
@@ -13,8 +14,10 @@ Built with [Flutter](https://flutter.dev). Runs on Android, iOS, and the web.
 The app has four tabs:
 
 ### Today
-- Shows today's practice for each of your groups: the session, its drills in
-  order, and how long each one runs.
+- Shows today's practice for each of your groups, each in its own card: the
+  session, its drills in order, and how long each one runs.
+- A date bar at the top shows any other day's practices; it moves to the new
+  day at midnight.
 - Jump straight to taking attendance or to the full schedule.
 
 ### Drills
@@ -62,11 +65,19 @@ on the Saturday itself.
 
 ### Your data
 
-Everything is saved locally on the device with `shared_preferences` (browser
-storage on the web). Nothing is uploaded, and nothing syncs between devices —
-uninstalling the app or clearing the browser's site data deletes it.
+The app works in one of two modes, depending on how it was built:
 
-Watching drill videos is the only feature that needs an internet connection.
+- **On this device** (until Firebase is set up): everything is saved with
+  `shared_preferences` (browser storage on the web). Nothing is uploaded or
+  synced, and uninstalling the app or clearing the browser's site data deletes
+  it.
+- **Shared** (once Firebase is set up): coaches sign in with email and
+  password, verify their email, and must be approved by the club admin. Then
+  everyone sees the same data, other coaches' changes appear while the app is
+  open, and the app keeps working offline. See
+  [docs/firebase-setup.md](docs/firebase-setup.md).
+
+Watching drill videos needs an internet connection in both modes.
 
 ## Install
 
@@ -90,6 +101,8 @@ To put it on your home screen:
 The APK is rebuilt automatically from every commit to `main`. It is signed
 with a debug key rather than a Play Store release key, so Android may show an
 extra warning when installing.
+
+The APK needs Android 7.0 or later.
 
 ### iOS
 
@@ -152,11 +165,14 @@ lib/
   data/          Built-in content: starter drills and the U10/U12 season curricula
                  (season_curricula.dart maps each age group to its plan)
   models/        Plain data classes (Drill, Session, Roster, Player, Coach, ...)
-  services/      Repositories that persist each model, plus season auto-assignment
+  services/      Repositories for each model, the data stores they save to (on the
+                 device, or shared through Firestore), and season auto-assignment
   screens/       One file per screen; root_screen.dart hosts the four tabs
   widgets/       Reusable UI pieces (cards, tiles, the YouTube embed)
   theme/         App colors
 test/            Unit and widget tests
+docs/            Firebase setup guide for shared data
+firestore.rules  Who can read and write the shared data
 web/             Web shell; flutter_bootstrap.js loads CanvasKit from the app's own files, not a CDN
 ```
 

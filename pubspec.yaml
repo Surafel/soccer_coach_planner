@@ -44,6 +44,9 @@ dependencies:
   # Embeds each drill's tutorial video (WebView on Android/iOS, iframe on web).
   webview_flutter: ^4.13.1
   web: ^1.1.1
+  firebase_core: ^3.15.0
+  cloud_firestore: ^5.6.0
+  firebase_auth: ^5.6.0
 
 dev_dependencies:
   flutter_test:
@@ -63,7 +66,7 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path: "assets/icon/app_icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 24
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"

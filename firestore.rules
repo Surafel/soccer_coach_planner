@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Security rules for the club's shared data. Publish them in the Firebase
+// console (Firestore Database > Rules) or with
+// `firebase deploy --only firestore:rules`. See docs/firebase-setup.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in coach whose email is verified and on the approved list.
+    // Requiring a verified email stops someone signing up with an approved
+    // coach's address. Approved emails are stored lower-case.
+    function isApprovedCoach() {
+      return request.auth != null
+          && request.auth.token.email_verified == true
+          && exists(/databases/$(database)/documents/approvedCoaches/$(request.auth.token.email.lower()));
+    }
+
+    // The list of approved coaches, one document per email address, managed
+    // by the club admin in the Firebase console. A coach may only check
+    // their own entry; nobody can change the list from the app.
+    match /approvedCoaches/{email} {
+      allow get: if request.auth != null
+          && request.auth.token.email.lower() == email;
+    }
+
+    // The club's data: clubs/{club}/{collection}/{item}.
+    match /clubs/{club}/{collection}/{item} {
+      allow read, write: if isApprovedCoach();
+    }
+  }
+}

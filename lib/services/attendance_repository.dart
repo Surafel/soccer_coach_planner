@@ -1,22 +1,29 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/attendance_record.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _attendanceKey = 'attendance_v1';
+class AttendanceRepository extends StoredRepository {
+  AttendanceRepository({DataStore? store}) : super('attendance', store);
 
-class AttendanceRepository {
   List<AttendanceRecord> _records = [];
-  SharedPreferences? _prefs;
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_attendanceKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as List<dynamic>;
-    _records = data
-        .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
+  static String _id(AttendanceRecord r) => pairId(r.rosterId, r.date);
+
+  @override
+  List<StoredItem> toItems() => [for (final r in _records) StoredItem(_id(r), r.toJson())];
+
+  @override
+  void fromItems(List<StoredItem> items) =>
+      _records = [for (final e in items) AttendanceRecord.fromJson(e.value)];
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'attendance_v1') as List?;
+    return data
+        ?.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
+        .map((r) => StoredItem(_id(r), r.toJson()))
         .toList();
   }
 
@@ -44,19 +51,11 @@ class AttendanceRepository {
     } else {
       _records.add(record);
     }
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteForRoster(String rosterId) async {
     _records.removeWhere((r) => r.rosterId == rosterId);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _attendanceKey,
-      jsonEncode(_records.map((r) => r.toJson()).toList()),
-    );
+    await persist();
   }
 }

@@ -1,36 +1,58 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/schedule.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _schedulesKey = 'schedules_v3';
+/// Stored as one item per roster and date, so coaches scheduling different
+/// dates at the same time don't overwrite each other.
+class ScheduleRepository extends StoredRepository {
+  ScheduleRepository({DataStore? store}) : super('schedules', store);
 
-class ScheduleRepository {
   Map<String, Schedule> _schedules = {};
-  SharedPreferences? _prefs;
 
   Schedule scheduleFor(String rosterId) => _schedules[rosterId] ?? Schedule.empty();
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_schedulesKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as Map<String, dynamic>;
+  @override
+  List<StoredItem> toItems() => [
+        for (final roster in _schedules.entries)
+          for (final a in roster.value.assignments.entries)
+            StoredItem(pairId(roster.key, a.key), {
+              'rosterId': roster.key,
+              'date': a.key,
+              'sessionId': a.value,
+            }),
+      ];
+
+  @override
+  void fromItems(List<StoredItem> items) {
+    final byRoster = <String, Map<String, String>>{};
+    for (final e in items) {
+      (byRoster[e.value['rosterId'] as String] ??= {})[e.value['date'] as String] =
+          e.value['sessionId'] as String;
+    }
+    _schedules = byRoster.map((rosterId, dates) => MapEntry(rosterId, Schedule(dates)));
+  }
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'schedules_v3') as Map<String, dynamic>?;
+    if (data == null) return null;
     _schedules = data.map(
       (rosterId, json) => MapEntry(rosterId, Schedule.fromJson(json as Map<String, dynamic>)),
     );
+    return toItems();
   }
 
   Future<void> assignSession(String rosterId, String date, String? sessionId) async {
     final updated = scheduleFor(rosterId).copyWithAssignment(date, sessionId);
     _schedules = {..._schedules, rosterId: updated};
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteRoster(String rosterId) async {
     _schedules = {..._schedules}..remove(rosterId);
-    await _persist();
+    await persist();
   }
 
   /// Clears any date, on any roster, currently assigned to [sessionId] (e.g.
@@ -46,14 +68,6 @@ class ScheduleRepository {
       }
       return MapEntry(rosterId, updated);
     });
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _schedulesKey,
-      jsonEncode(_schedules.map((rosterId, schedule) => MapEntry(rosterId, schedule.toJson()))),
-    );
+    await persist();
   }
 }

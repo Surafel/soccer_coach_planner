@@ -30,6 +30,10 @@ class TeamHubScreen extends StatelessWidget {
   final SeasonProgressRepository progressRepository;
   final VoidCallback onChanged;
 
+  /// Shown, with a sign-out option, when the app uses the club's shared data.
+  final String? signedInEmail;
+  final VoidCallback? onSignOut;
+
   const TeamHubScreen({
     super.key,
     required this.rosterRepository,
@@ -43,12 +47,34 @@ class TeamHubScreen extends StatelessWidget {
     required this.drillRepository,
     required this.progressRepository,
     required this.onChanged,
+    this.signedInEmail,
+    this.onSignOut,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Team')),
+      appBar: AppBar(
+        title: const Text('Team'),
+        actions: [
+          if (signedInEmail != null)
+            PopupMenuButton<void>(
+              icon: const Icon(Icons.account_circle_outlined),
+              tooltip: 'Account',
+              itemBuilder: (context) => [
+                PopupMenuItem<void>(
+                  enabled: false,
+                  child: Text('Signed in as $signedInEmail'),
+                ),
+                if (onSignOut != null)
+                  PopupMenuItem<void>(
+                    onTap: onSignOut,
+                    child: const Text('Sign out'),
+                  ),
+              ],
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [

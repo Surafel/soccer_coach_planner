@@ -1,24 +1,30 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/roster.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _rostersKey = 'rosters_v1';
+class RosterRepository extends StoredRepository {
+  RosterRepository({DataStore? store}) : super('rosters', store);
 
-class RosterRepository {
   List<Roster> _rosters = [];
-  SharedPreferences? _prefs;
 
   List<Roster> get rosters => List.unmodifiable(_rosters);
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_rostersKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as List<dynamic>;
-    _rosters =
-        data.map((e) => Roster.fromJson(e as Map<String, dynamic>)).toList();
+  @override
+  List<StoredItem> toItems() => [for (final r in _rosters) StoredItem(r.id, r.toJson())];
+
+  @override
+  void fromItems(List<StoredItem> items) =>
+      _rosters = [for (final e in items) Roster.fromJson(e.value)];
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'rosters_v1') as List?;
+    return data
+        ?.map((e) => Roster.fromJson(e as Map<String, dynamic>))
+        .map((r) => StoredItem(r.id, r.toJson()))
+        .toList();
   }
 
   Roster? byId(String id) {
@@ -35,19 +41,11 @@ class RosterRepository {
     } else {
       _rosters.add(roster);
     }
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteRoster(String id) async {
     _rosters.removeWhere((r) => r.id == id);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _rostersKey,
-      jsonEncode(_rosters.map((r) => r.toJson()).toList()),
-    );
+    await persist();
   }
 }

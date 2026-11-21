@@ -1,27 +1,33 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/player.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _playersKey = 'roster_v1';
+class PlayerRepository extends StoredRepository {
+  PlayerRepository({DataStore? store}) : super('players', store);
 
-class PlayerRepository {
   List<Player> _players = [];
-  SharedPreferences? _prefs;
 
   List<Player> get players => List.unmodifiable(_players);
 
   List<Player> playersForRoster(String rosterId) =>
       _players.where((p) => p.rosterId == rosterId).toList();
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_playersKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as List<dynamic>;
-    _players =
-        data.map((e) => Player.fromJson(e as Map<String, dynamic>)).toList();
+  @override
+  List<StoredItem> toItems() => [for (final p in _players) StoredItem(p.id, p.toJson())];
+
+  @override
+  void fromItems(List<StoredItem> items) =>
+      _players = [for (final e in items) Player.fromJson(e.value)];
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'roster_v1') as List?;
+    return data
+        ?.map((e) => Player.fromJson(e as Map<String, dynamic>))
+        .map((p) => StoredItem(p.id, p.toJson()))
+        .toList();
   }
 
   Player? byId(String id) {
@@ -38,24 +44,16 @@ class PlayerRepository {
     } else {
       _players.add(player);
     }
-    await _persist();
+    await persist();
   }
 
   Future<void> deletePlayer(String id) async {
     _players.removeWhere((p) => p.id == id);
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteForRoster(String rosterId) async {
     _players.removeWhere((p) => p.rosterId == rosterId);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _playersKey,
-      jsonEncode(_players.map((p) => p.toJson()).toList()),
-    );
+    await persist();
   }
 }

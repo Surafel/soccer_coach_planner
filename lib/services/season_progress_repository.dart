@@ -1,43 +1,42 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/season_progress.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _progressKey = 'season_progress_v1';
+class SeasonProgressRepository extends StoredRepository {
+  SeasonProgressRepository({DataStore? store}) : super('seasonProgress', store);
 
-class SeasonProgressRepository {
   Map<String, SeasonProgress> _progressByRoster = {};
-  SharedPreferences? _prefs;
 
   SeasonProgress? forRoster(String rosterId) => _progressByRoster[rosterId];
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_progressKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as Map<String, dynamic>;
-    _progressByRoster = data.map(
-      (rosterId, json) =>
-          MapEntry(rosterId, SeasonProgress.fromJson(json as Map<String, dynamic>)),
-    );
+  @override
+  List<StoredItem> toItems() => [
+        for (final p in _progressByRoster.values) StoredItem(p.rosterId, p.toJson()),
+      ];
+
+  @override
+  void fromItems(List<StoredItem> items) => _progressByRoster = {
+        for (final e in items) e.key: SeasonProgress.fromJson(e.value),
+      };
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'season_progress_v1') as Map<String, dynamic>?;
+    return data?.values
+        .map((json) => SeasonProgress.fromJson(json as Map<String, dynamic>))
+        .map((p) => StoredItem(p.rosterId, p.toJson()))
+        .toList();
   }
 
   Future<void> save(SeasonProgress progress) async {
     _progressByRoster = {..._progressByRoster, progress.rosterId: progress};
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteForRoster(String rosterId) async {
     _progressByRoster = {..._progressByRoster}..remove(rosterId);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _progressKey,
-      jsonEncode(_progressByRoster.map((rosterId, p) => MapEntry(rosterId, p.toJson()))),
-    );
+    await persist();
   }
 }

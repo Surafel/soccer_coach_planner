@@ -1,24 +1,30 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/session.dart';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
-const _sessionsKey = 'sessions_v1';
+class SessionRepository extends StoredRepository {
+  SessionRepository({DataStore? store}) : super('sessions', store);
 
-class SessionRepository {
   List<Session> _sessions = [];
-  SharedPreferences? _prefs;
 
   List<Session> get sessions => List.unmodifiable(_sessions);
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_sessionsKey);
-    if (raw == null) return;
-    final data = jsonDecode(raw) as List<dynamic>;
-    _sessions =
-        data.map((e) => Session.fromJson(e as Map<String, dynamic>)).toList();
+  @override
+  List<StoredItem> toItems() => [for (final s in _sessions) StoredItem(s.id, s.toJson())];
+
+  @override
+  void fromItems(List<StoredItem> items) =>
+      _sessions = [for (final e in items) Session.fromJson(e.value)];
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'sessions_v1') as List?;
+    return data
+        ?.map((e) => Session.fromJson(e as Map<String, dynamic>))
+        .map((s) => StoredItem(s.id, s.toJson()))
+        .toList();
   }
 
   Session? byId(String id) {
@@ -35,19 +41,11 @@ class SessionRepository {
     } else {
       _sessions.add(session);
     }
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteSession(String id) async {
     _sessions.removeWhere((s) => s.id == id);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _sessionsKey,
-      jsonEncode(_sessions.map((s) => s.toJson()).toList()),
-    );
+    await persist();
   }
 }

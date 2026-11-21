@@ -6,6 +6,7 @@ import '../services/attendance_repository.dart';
 import '../services/coach_assignment_repository.dart';
 import '../services/coach_availability_repository.dart';
 import '../services/coach_repository.dart';
+import '../services/data_store.dart';
 import '../services/drill_repository.dart';
 import '../services/player_repository.dart';
 import '../services/roster_repository.dart';
@@ -19,23 +20,32 @@ import 'team_hub_screen.dart';
 import 'today_screen.dart';
 
 class RootScreen extends StatefulWidget {
-  const RootScreen({super.key});
+  /// Where the app's data lives: this device only (the default) or the
+  /// club's shared database.
+  final DataStore? store;
+
+  /// The signed-in coach's email and how to sign out, when using shared data.
+  final String? signedInEmail;
+  final VoidCallback? onSignOut;
+
+  const RootScreen({super.key, this.store, this.signedInEmail, this.onSignOut});
 
   @override
   State<RootScreen> createState() => _RootScreenState();
 }
 
 class _RootScreenState extends State<RootScreen> {
-  final _drillRepository = DrillRepository();
-  final _sessionRepository = SessionRepository();
-  final _scheduleRepository = ScheduleRepository();
-  final _rosterRepository = RosterRepository();
-  final _playerRepository = PlayerRepository();
-  final _coachRepository = CoachRepository();
-  final _availabilityRepository = CoachAvailabilityRepository();
-  final _assignmentRepository = CoachAssignmentRepository();
-  final _attendanceRepository = AttendanceRepository();
-  final _progressRepository = SeasonProgressRepository();
+  late final DataStore _store = widget.store ?? LocalDataStore();
+  late final _drillRepository = DrillRepository(store: _store);
+  late final _sessionRepository = SessionRepository(store: _store);
+  late final _scheduleRepository = ScheduleRepository(store: _store);
+  late final _rosterRepository = RosterRepository(store: _store);
+  late final _playerRepository = PlayerRepository(store: _store);
+  late final _coachRepository = CoachRepository(store: _store);
+  late final _availabilityRepository = CoachAvailabilityRepository(store: _store);
+  late final _assignmentRepository = CoachAssignmentRepository(store: _store);
+  late final _attendanceRepository = AttendanceRepository(store: _store);
+  late final _progressRepository = SeasonProgressRepository(store: _store);
 
   int _tabIndex = 0;
   bool _loading = true;
@@ -44,7 +54,16 @@ class _RootScreenState extends State<RootScreen> {
   @override
   void initState() {
     super.initState();
+    // Another coach changed the shared data: the repositories are already
+    // updated, so just redraw.
+    _store.addListener(_refresh);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _store.removeListener(_refresh);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -104,7 +123,9 @@ class _RootScreenState extends State<RootScreen> {
     }
   }
 
-  void _refresh() => setState(() {});
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +180,8 @@ class _RootScreenState extends State<RootScreen> {
         drillRepository: _drillRepository,
         progressRepository: _progressRepository,
         onChanged: _refresh,
+        signedInEmail: widget.signedInEmail,
+        onSignOut: widget.onSignOut,
       ),
     ];
 

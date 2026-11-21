@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/starter_drills.dart';
 import '../models/drill.dart';
-
-const _drillsKey = 'drills_v1';
+import 'data_store.dart';
+import 'stored_repository.dart';
 
 /// Earlier versions gave every built-in curriculum drill one shared
 /// "reference" video per category, so different drills showed the same
@@ -37,34 +36,44 @@ Drill _withoutVideo(Drill d) => Drill(
       ageRange: d.ageRange,
     );
 
-class DrillRepository {
+class DrillRepository extends StoredRepository {
+  DrillRepository({DataStore? store}) : super('drills', store);
+
   List<Drill> _drills = [];
-  SharedPreferences? _prefs;
 
   List<Drill> get drills => List.unmodifiable(_drills);
 
-  /// Seeds the starter drills on first launch (empty storage), then persists
-  /// so a coach can freely edit or delete them afterward.
+  @override
+  List<StoredItem> toItems() => [for (final d in _drills) StoredItem(d.id, d.toJson())];
+
+  @override
+  void fromItems(List<StoredItem> items) =>
+      _drills = [for (final e in items) Drill.fromJson(e.value)];
+
+  @override
+  List<StoredItem>? readLegacy(SharedPreferences prefs) {
+    final data = readLegacyJson(prefs, 'drills_v1') as List?;
+    return data
+        ?.map((e) => Drill.fromJson(e as Map<String, dynamic>))
+        .map((d) => StoredItem(d.id, d.toJson()))
+        .toList();
+  }
+
+  /// Seeds the starter drills the first time (nothing ever saved), then
+  /// persists so a coach can freely edit or delete them afterward.
+  @override
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    final raw = prefs.getString(_drillsKey);
-    if (raw == null) {
-      // buildStarterDrills() returns a `const` list, which is unmodifiable —
-      // copy it into a growable list so saveDrill/deleteDrill work on a
-      // brand-new install without a restart in between.
+    await super.load();
+    if (loadedNothing) {
       _drills = List.of(buildStarterDrills());
-      await _persist();
+      await persist();
       return;
     }
-    final data = jsonDecode(raw) as List<dynamic>;
-    _drills = data.map((e) => Drill.fromJson(e as Map<String, dynamic>)).toList();
-
     if (_drills.any(_hasRetiredCategoryVideo)) {
       _drills = [
         for (final d in _drills) _hasRetiredCategoryVideo(d) ? _withoutVideo(d) : d,
       ];
-      await _persist();
+      await persist();
     }
   }
 
@@ -93,19 +102,11 @@ class DrillRepository {
     } else {
       _drills.add(drill);
     }
-    await _persist();
+    await persist();
   }
 
   Future<void> deleteDrill(String id) async {
     _drills.removeWhere((d) => d.id == id);
-    await _persist();
-  }
-
-  Future<void> _persist() async {
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
-    await prefs.setString(
-      _drillsKey,
-      jsonEncode(_drills.map((d) => d.toJson()).toList()),
-    );
+    await persist();
   }
 }
